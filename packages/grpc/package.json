@@ -4,11 +4,16 @@
   "description": "",
   "main": "src/index.ts",
   "scripts": {
-    "generate": "grpc_tools_node_protoc -I ./protos --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./generated --ts_proto_opt=outputServices=grpc-js,esModuleInterop=true ./protos/*.proto"
+    "build" : "tsc -b",
+    "generate": "grpc_tools_node_protoc -I ./protos --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=src/generated --ts_proto_opt=outputServices=grpc-js,esModuleInterop=true src/protos/*.proto"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "export" : {
+    "types" : "./dist/index.d.ts",
+    "default" : "./dist/index.d.js"
+  },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
     "grpc-tools": "^1.13.0",

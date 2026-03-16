@@ -1,11 +1,15 @@
 {
   "extends": "@repo/typescript-config/base.json",
   "compilerOptions": {
-    "noEmit": true
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "composite": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./dist/.tsbuildinfo"
   },
   "include": [
     "src",
-    "generated"
+    "src/generated"
   ],
   "exclude": [
     "node_modules",
