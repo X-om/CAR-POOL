@@ -1,0 +1,51 @@
+syntax = "proto3";
+package search;
+
+service SearchService {
+    rpc SearchRides(SearchRidesRequest) returns (SearchRidesResponse);
+    rpc GetRideSearchData(GetRideSearchDataRequest) returns (GetRideSearchDataResponse);
+}
+
+message SearchRidesRequest {
+  double sourceLatitude = 1;
+  double sourceLongitude = 2;
+
+  double destinationLatitude = 3;
+  double destinationLongitude = 4;
+
+  int64 departureTime = 5; // Unix timestamp
+  int32 requiredSeats = 6;
+} 
+
+message RideInfo {
+  string rideId = 1;
+  string driverId = 2;
+  string vehicleId = 3;
+  string sourceCity = 4;
+  string destinationCity = 5;
+  int64 departureTime = 6; // Unix timestamp
+  double pricePerSeat = 7;
+  int32 availableSeats = 8;
+  double driverRating = 9;
+}
+
+message SearchRidesResponse {
+  repeated RideInfo rides = 1;
+}
+
+message GetRideSearchDataRequest {
+  string rideId = 1;
+}
+
+message GetRideSearchDataResponse {
+  string rideId = 1;
+  string driverId = 2;
+  string vehicleId = 3;
+  string sourceCity = 4;
+  string destinationCity = 5;
+  int64 departureTime = 6; // Unix timestamp
+  double pricePerSeat = 7;
+  int32 availableSeats = 8;
+  double driverRating = 9;
+}
+

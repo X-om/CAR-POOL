@@ -1,0 +1,7 @@
+{
+  "outputServices": "grpc-js",
+  "esModuleInterop": true,
+  "env": "node",
+  "useOptionals": true,
+  "outputClientImpl": true
+}

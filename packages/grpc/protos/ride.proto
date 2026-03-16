@@ -1,0 +1,121 @@
+syntax = "proto3";
+package ride;
+
+service RideService {
+    rpc  CreateRide(CreateRideRequest) returns (CreateRideResponse);
+    rpc  UpdateRide(UpdateRideRequest) returns (UpdateRideResponse);
+    rpc  CancelRide(CancelRideRequest) returns (CancelRideResponse);
+    rpc  GetRide(GetRideRequest) returns (GetRideResponse);
+    rpc  ListDriverRides(ListDriverRidesRequest) returns (ListDriverRidesResponse);
+    rpc  CheckSeatAvailability(CheckSeatAvailabilityRequest) returns (CheckSeatAvailabilityResponse);
+    rpc  ReserveSeats(ReserveSeatsRequest) returns (ReserveSeatsResponse);
+    rpc  ReleaseSeats(ReleaseSeatsRequest) returns (ReleaseSeatsResponse);
+}
+
+message Stop {
+  int32 stopOrder = 1;
+  string cityName = 2;
+  double latitude = 3;
+  double longitude = 4;
+}
+
+message CreateRideRequest {
+    string driverId = 1;
+    string vehicleId = 2;
+    string sourceCity = 3;
+    string destinationCity = 4;
+    int64 departureTime = 5; // Unix timestamp
+    double pricePerSeat = 6;
+    repeated Stop stops = 7;
+}
+
+message CreateRideResponse {
+    string rideId = 1;
+}
+
+message UpdateRideRequest {
+    string rideId = 1;
+    string driverId = 2;
+    string vehicleId = 3;
+    string sourceCity = 4;
+    string destinationCity = 5;
+    int64 departureTime = 6; // Unix timestamp
+    double pricePerSeat = 7;
+    repeated Stop stops = 8;
+}
+
+message UpdateRideResponse {
+    bool success = 1;
+}
+
+message CancelRideRequest {
+    string rideId = 1;
+    string driverId = 2;
+}
+
+message CancelRideResponse {
+    bool success = 1;
+}
+
+message GetRideRequest {
+    string rideId = 1;
+}
+
+message GetRideResponse {
+    string rideId = 1;
+    string driverId = 2;
+    string vehicleId = 3;
+    string sourceCity = 4;
+    string destinationCity = 5;
+    int64 departureTime = 6; // Unix timestamp
+    double pricePerSeat = 7;
+    repeated Stop stops = 8;
+}
+
+message ListDriverRidesRequest {
+    string driverId = 1;
+}
+
+message RideListItem {
+    string rideId = 1;
+    string driverId = 2;
+    string vehicleId = 3;
+    string sourceCity = 4;
+    string destinationCity = 5;
+    int64 departureTime = 6; // Unix timestamp
+    double pricePerSeat = 7;
+    repeated Stop stops = 8;
+}
+
+message ListDriverRidesResponse {
+    repeated RideListItem rides = 1;
+}
+
+message CheckSeatAvailabilityRequest {
+    string rideId = 1;
+    int32 requestedSeats = 2;
+}
+
+message CheckSeatAvailabilityResponse {
+  int32 availableSeats = 2;
+  bool isAvailable = 1;
+}
+
+message ReserveSeatsRequest {
+    string rideId = 1;
+    int32 seatCount = 2;
+}
+
+message ReserveSeatsResponse {
+    bool success = 1;
+}
+
+message ReleaseSeatsRequest {
+    string rideId = 1;
+    int32 seatCount = 2;
+}
+
+message ReleaseSeatsResponse {
+    bool success = 1;
+}
+

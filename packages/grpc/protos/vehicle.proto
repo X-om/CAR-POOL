@@ -1,0 +1,94 @@
+syntax = "proto3";
+package vehicle;
+
+service VehicleService {
+  rpc AddVehicle (AddVehicleRequest) returns (AddVehicleResponse);
+  rpc UpdateVehicle (UpdateVehicleRequest) returns (UpdateVehicleResponse);
+  rpc DeleteVehicle (DeleteVehicleRequest) returns (DeleteVehicleResponse);
+  rpc GetVehicle (GetVehicleRequest) returns (GetVehicleResponse);
+  rpc ListUserVehicles (ListUserVehiclesRequest) returns (ListUserVehiclesResponse);
+  rpc VerifyVehicleOwnership (VerifyVehicleOwnershipRequest) returns (VerifyVehicleOwnershipResponse);
+}
+
+message AddVehicleRequest {
+  string ownerId = 1;
+  string make = 2;
+  string model = 3;
+  int32 year = 4;
+  string color = 5;
+  string licensePlate = 6;
+  int32 seatCapacity = 7;
+}
+
+message AddVehicleResponse {
+  string vehicleId = 1;
+}
+
+message UpdateVehicleRequest {
+  string vehicleId = 1;
+  string ownerId = 2;
+  string make = 3;
+  string model = 4;
+  int32 year = 5;
+  string color = 6;
+  string licensePlate = 7;
+  int32 seatCapacity = 8;
+}
+
+message UpdateVehicleResponse {
+  bool success = 1;
+}
+
+message DeleteVehicleRequest {
+  string vehicleId = 1;
+  string ownerId = 2;
+}
+
+message DeleteVehicleResponse {
+  bool success = 1;
+}
+
+message GetVehicleRequest {
+  string vehicleId = 1;
+}
+
+message GetVehicleResponse {
+  string vehicleId = 1;
+  string ownerId = 2;
+  string make = 3;
+  string model = 4;
+  int32 year = 5;
+  string color = 6;
+  string licensePlate = 7;
+  int32 seatCapacity = 8;
+}
+
+message ListUserVehiclesRequest {
+  string ownerId = 1;
+}
+
+message VehicleListItem {
+  string vehicleId = 1;
+  string ownerId = 2;
+  string make = 3;
+  string model = 4;
+  int32 year = 5;
+  string color = 6;
+  string licensePlate = 7;
+  int32 seatCapacity = 8;
+}
+
+message ListUserVehiclesResponse {
+  repeated VehicleListItem vehicles = 1;
+}
+
+message VerifyVehicleOwnershipRequest {
+  string vehicleId = 1;
+  string ownerId = 2;
+}
+
+message VerifyVehicleOwnershipResponse {
+  bool isOwner = 1;
+  int32 seatCapacity = 2;
+}
+

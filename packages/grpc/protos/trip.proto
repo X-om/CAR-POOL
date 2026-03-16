@@ -1,0 +1,65 @@
+syntax = "proto3";
+package trip;
+
+service TripService {
+  rpc  StartTrip(StartTripRequest) returns (StartTripResponse);
+  rpc  PickupPassenger(PickupPassengerRequest) returns (PickupPassengerResponse);
+  rpc  CompleteTrip(CompleteTripRequest) returns (CompleteTripResponse);
+  rpc  GetTrip(GetTripRequest) returns (GetTripResponse);
+  rpc  ListDriverTrips(ListDriverTripsRequest) returns (ListDriverTripsResponse);
+}
+enum TripStatus {
+  SCHEDULED = 0;
+  STARTED = 1;
+  IN_PROGRESS = 2; 
+  COMPLETED = 3;
+  CANCELLED = 4;
+}
+
+message StartTripRequest {
+  string rideId = 1;
+  string driverId = 2;
+}
+
+message StartTripResponse {
+  string tripId = 1;
+  TripStatus status = 2;
+}
+
+message PickupPassengerRequest {
+  string tripId = 1;
+  string passengerId = 2;
+}
+
+message PickupPassengerResponse {
+  bool success = 1;
+}
+
+message CompleteTripRequest {
+  string tripId = 1;
+  string driverId = 2;
+}
+
+message CompleteTripResponse {
+  bool success = 1;
+}
+
+message GetTripRequest {
+  string tripId = 1;
+}
+
+message GetTripResponse {
+  string tripId = 1;
+  string rideId = 2;
+  string driverId = 3;
+  repeated string passengerIds = 4;
+  TripStatus status = 5;
+}
+
+message ListDriverTripsRequest {
+  string driverId = 1;
+}
+
+message ListDriverTripsResponse {
+  repeated GetTripResponse trips = 1;
+}

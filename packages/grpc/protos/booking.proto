@@ -1,0 +1,56 @@
+syntax = "proto3";
+package booking;
+
+service BookingService {
+  rpc  CreateBooking(CreateBookingRequest) returns (CreateBookingResponse);
+  rpc  CancelBooking(CancelBookingRequest) returns (CancelBookingResponse);
+  rpc  GetBooking(GetBookingRequest) returns (GetBookingResponse);
+  rpc  ListUserBookings(ListUserBookingsRequest) returns (ListUserBookingsResponse);
+}
+
+enum BookingStatus {
+  PENDING = 0;
+  CONFIRMED = 1;
+  CANCELLED = 2;
+  COMPLETED = 3;
+}
+
+message CreateBookingRequest {
+  string userId = 1;
+  string passengerId = 2;
+  int32 seatCount = 3;
+}
+
+message CreateBookingResponse {
+  string bookingId = 1;
+  BookingStatus status = 2;
+}
+
+message CancelBookingRequest {
+  string bookingId = 1;
+  string passengerId = 2;
+}
+
+message CancelBookingResponse {
+  bool success = 1;
+}
+
+message GetBookingRequest {
+  string bookingId = 1;
+}
+
+message GetBookingResponse {
+  string bookingId = 1;
+  string userId = 2;
+  string passengerId = 3;
+  int32 seatCount = 4;
+  BookingStatus status = 5;
+}
+
+message ListUserBookingsRequest {
+  string passengerId = 1;
+}
+
+message ListUserBookingsResponse {
+  repeated GetBookingResponse bookings = 1;
+}

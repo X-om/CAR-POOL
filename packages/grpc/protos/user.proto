@@ -1,0 +1,97 @@
+syntax = "proto3";
+package user;
+
+service UserService {
+  rpc RegisterUser (RegisterUserRequest) returns (RegisterUserResponse);
+  rpc VerifyOTP (VerifyOTPRequest) returns (VerifyOTPResponse);
+  rpc GetUser (GetUserRequest) returns (GetUserResponse);
+  rpc GetUserProfile (GetUserProfileRequest) returns (GetUserProfileResponse);
+  rpc UpdateUserProfile (UpdateUserProfileRequest) returns (UpdateUserProfileResponse);
+  rpc GetUserRating (GetUserRatingRequest) returns (GetUserRatingResponse);
+  rpc IncrementUserRideCount (IncrementUserRideCountRequest) returns (IncrementUserRideCountResponse);
+  rpc UpdateUserRating (UpdateUserRatingRequest) returns (UpdateUserRatingResponse);
+}
+
+message RegisterUserRequest {
+  string phoneNumber = 1;
+  string email = 2;
+}
+
+message RegisterUserResponse {
+  string userId = 1;
+  string otpSend = 2;
+}
+
+
+message VerifyOTPRequest {
+  string phoneNumber = 1;
+  string otp = 2;
+}
+
+message VerifyOTPResponse {
+  string userId = 1;
+  string token = 2;
+}
+
+message GetUserRequest {
+  string userId = 1;
+}
+
+message GetUserResponse {
+  string userId = 1;
+  string phoneNumber = 2;
+  string email = 3;
+  bool isVerified = 4;
+  bool isDriver = 5;  
+}
+
+message GetUserProfileRequest {
+  string userId = 1;
+}
+
+message GetUserProfileResponse {
+  string userId = 1;
+  string name = 2;
+  string profilePictureUrl = 3;
+  string bio = 4;
+  string city = 5;
+}
+
+message UpdateUserProfileRequest {
+  string userId = 1;
+  string firstName = 2;
+  string lastName = 3;
+  string profilePictureUrl = 4;
+  string bio = 5;
+  string city = 6;
+}
+
+message UpdateUserProfileResponse {
+  bool success = 1;
+}
+
+message GetUserRatingRequest {
+  string userId = 1;
+}
+
+message GetUserRatingResponse {
+  double averageRating = 1;
+  int32 totalRatings = 2;
+}
+
+message IncrementUserRideCountRequest {
+  string userId = 1;
+}
+
+message IncrementUserRideCountResponse {
+  int32 total_rides = 1;
+}
+
+message UpdateUserRatingRequest {
+  string userId = 1;
+  double newRating = 2;
+}
+
+message UpdateUserRatingResponse {
+  bool success = 1;
+}

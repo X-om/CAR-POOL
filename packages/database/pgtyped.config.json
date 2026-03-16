@@ -1,0 +1,13 @@
+{
+  "transforms": [
+    {
+      "mode": "sql",
+      "include": "schema/*.sql",
+      "emitTemplate": "{{dir}}/../types/{{name}}.queries.ts"
+    }
+  ],
+  "srcDir": "./src",
+  "failOnError": true,
+  "camelCaseColumnNames": false,
+  "db": {}
+}
