@@ -1,3 +1,9 @@
+x-node-image: &node_image
+  image: carpool-node:dev
+  build:
+    context: ../..
+    dockerfile: infra/docker/Dockerfile.services
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -10,6 +16,324 @@ services:
       - "5432:5432"
     volumes:
       - carpool_postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    container_name: carpool-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  redpanda:
+    image: redpandadata/redpanda:v24.3.9
+    container_name: carpool-redpanda
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp
+      - "1"
+      - --memory
+      - "1G"
+      - --reserve-memory
+      - "0M"
+      - --node-id
+      - "0"
+      - --check=false
+      - --kafka-addr
+      - "PLAINTEXT://0.0.0.0:9092,OUTSIDE://0.0.0.0:19092"
+      - --advertise-kafka-addr
+      - "PLAINTEXT://redpanda:9092,OUTSIDE://localhost:19092"
+    ports:
+      - "9092:9092"
+      - "19092:19092"
+      - "9644:9644"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health -X brokers=localhost:9092"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  # ---- App stack (profile) ----
+  db-migrate:
+    profiles: ["app"]
+    <<: *node_image
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
+    command: ["pnpm", "--filter", "@repo/database", "migrate"]
+    restart: "no"
+
+  mailpit:
+    profiles: ["app"]
+    image: axllent/mailpit:v1.23
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    restart: unless-stopped
+
+  user-service:
+    profiles: ["app"]
+    <<: *node_image
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-32chars-minimum!!}
+      INTERNAL_JWT_SECRET: ${INTERNAL_JWT_SECRET:-dev-internal-jwt-secret-32chars!!}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-redpanda:9092}
+      USER_SERVICE_GRPC_PORT: 50051
+    command: ["pnpm", "--filter", "user-service", "exec", "tsx", "src/server.ts"]
+    ports:
+      - "50051:50051"
+    restart: unless-stopped
+
+  vehicle-service:
+    profiles: ["app"]
+    <<: *node_image
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
+      INTERNAL_JWT_SECRET: ${INTERNAL_JWT_SECRET:-dev-internal-jwt-secret-32chars!!}
+      VEHICLE_SERVICE_GRPC_PORT: 50052
+    command: ["pnpm", "--filter", "vehicle-service", "exec", "tsx", "src/server.ts"]
+    ports:
+      - "50052:50052"
+    restart: unless-stopped
+
+  ride-service:
+    profiles: ["app"]
+    <<: *node_image
+    depends_on:
+      user-service:
+        condition: service_started
+      db-migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
+      INTERNAL_JWT_SECRET: ${INTERNAL_JWT_SECRET:-dev-internal-jwt-secret-32chars!!}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-redpanda:9092}
+      RIDE_SERVICE_GRPC_PORT: 50053
+      USER_SERVICE_GRPC_ADDR: user-service:50051
+    command: ["pnpm", "--filter", "ride-service", "exec", "tsx", "src/server.ts"]
+    ports:
+      - "50053:50053"
+    restart: unless-stopped
+
+  search-service:
+    profiles: ["app"]
+    <<: *node_image
+    depends_on:
+      user-service:
+        condition: service_started
+      db-migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
+      INTERNAL_JWT_SECRET: ${INTERNAL_JWT_SECRET:-dev-internal-jwt-secret-32chars!!}
+      SEARCH_SERVICE_GRPC_PORT: 50054
+      USER_SERVICE_GRPC_ADDR: user-service:50051
+    command: ["pnpm", "--filter", "search-service", "exec", "tsx", "src/server.ts"]
+    ports:
+      - "50054:50054"
+    restart: unless-stopped
+
+  booking-service:
+    profiles: ["app"]
+    <<: *node_image
+    depends_on:
+      user-service:
+        condition: service_started
+      ride-service:
+        condition: service_started
+      db-migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
+      INTERNAL_JWT_SECRET: ${INTERNAL_JWT_SECRET:-dev-internal-jwt-secret-32chars!!}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-redpanda:9092}
+      BOOKING_SERVICE_GRPC_PORT: 50055
+      USER_SERVICE_GRPC_ADDR: user-service:50051
+      RIDE_SERVICE_GRPC_ADDR: ride-service:50053
+    command: ["pnpm", "--filter", "booking-service", "exec", "tsx", "src/server.ts"]
+    ports:
+      - "50055:50055"
+    restart: unless-stopped
+
+  trip-service:
+    profiles: ["app"]
+    <<: *node_image
+    depends_on:
+      user-service:
+        condition: service_started
+      db-migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
+      INTERNAL_JWT_SECRET: ${INTERNAL_JWT_SECRET:-dev-internal-jwt-secret-32chars!!}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-redpanda:9092}
+      TRIP_SERVICE_GRPC_PORT: 50056
+      USER_SERVICE_GRPC_ADDR: user-service:50051
+    command: ["pnpm", "--filter", "trip-service", "exec", "tsx", "src/server.ts"]
+    ports:
+      - "50056:50056"
+    restart: unless-stopped
+
+  notification-service:
+    profiles: ["app"]
+    <<: *node_image
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      redpanda:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
+      INTERNAL_JWT_SECRET: ${INTERNAL_JWT_SECRET:-dev-internal-jwt-secret-32chars!!}
+      NOTIFICATION_SERVICE_GRPC_PORT: 50057
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-redpanda:9092}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+    command: ["pnpm", "--filter", "notification-service", "exec", "tsx", "src/server.ts"]
+    ports:
+      - "50057:50057"
+    restart: unless-stopped
+
+  api-gateway:
+    profiles: ["app"]
+    <<: *node_image
+    depends_on:
+      user-service:
+        condition: service_started
+      vehicle-service:
+        condition: service_started
+      ride-service:
+        condition: service_started
+      search-service:
+        condition: service_started
+      booking-service:
+        condition: service_started
+      trip-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-32chars-minimum!!}
+      INTERNAL_JWT_SECRET: ${INTERNAL_JWT_SECRET:-dev-internal-jwt-secret-32chars!!}
+      BACKEND_PORT: 3000
+      USER_SERVICE_GRPC_ADDR: user-service:50051
+      VEHICLE_SERVICE_GRPC_ADDR: vehicle-service:50052
+      RIDE_SERVICE_GRPC_ADDR: ride-service:50053
+      SEARCH_SERVICE_GRPC_ADDR: search-service:50054
+      BOOKING_SERVICE_GRPC_ADDR: booking-service:50055
+      TRIP_SERVICE_GRPC_ADDR: trip-service:50056
+      NOTIFICATION_SERVICE_GRPC_ADDR: notification-service:50057
+    command: ["pnpm", "--filter", "api-gateway", "exec", "tsx", "src/server.ts"]
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  webSocket-gateway:
+    profiles: ["app"]
+    <<: *node_image
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-32chars-minimum!!}
+      WS_PORT: 3001
+    command: ["pnpm", "--filter", "webSocket-gateway", "exec", "tsx", "src/server.ts"]
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+
+  outbox-publisher:
+    profiles: ["app"]
+    <<: *node_image
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      redpanda:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-redpanda:9092}
+    command: ["pnpm", "--filter", "outbox-publisher", "exec", "tsx", "src/worker.ts"]
+    restart: unless-stopped
+
+  notification-worker:
+    profiles: ["app"]
+    <<: *node_image
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      redpanda:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-redpanda:9092}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      NOTIFICATION_KAFKA_GROUP_ID: ${NOTIFICATION_KAFKA_GROUP_ID:-notification-service.docker}
+    command: ["pnpm", "--filter", "notification-service", "exec", "tsx", "src/worker.ts"]
+    restart: unless-stopped
+
+  reminder-worker:
+    profiles: ["app"]
+    <<: *node_image
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      redpanda:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-redpanda:9092}
+      USER_SERVICE_GRPC_ADDR: user-service:50051
+      INTERNAL_JWT_SECRET: ${INTERNAL_JWT_SECRET:-dev-internal-jwt-secret-32chars!!}
+    command: ["pnpm", "--filter", "reminder-worker", "exec", "tsx", "src/worker.ts"]
+    restart: unless-stopped
+
+  mailer-worker:
+    profiles: ["app"]
+    <<: *node_image
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-redpanda:9092}
+      MAILER_KAFKA_GROUP_ID: ${MAILER_KAFKA_GROUP_ID:-mailer-worker.docker}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_SECURE: "false"
+    command: ["pnpm", "--filter", "mailer-worker", "exec", "tsx", "src/worker.ts"]
     restart: unless-stopped
 
 volumes:

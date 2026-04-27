@@ -21,6 +21,39 @@ import {
 
 export const protobufPackage = "ride";
 
+export enum BookingApprovalMode {
+  BOOKING_APPROVAL_MODE_AUTO = 0,
+  BOOKING_APPROVAL_MODE_MANUAL = 1,
+  UNRECOGNIZED = -1,
+}
+
+export function bookingApprovalModeFromJSON(object: any): BookingApprovalMode {
+  switch (object) {
+    case 0:
+    case "BOOKING_APPROVAL_MODE_AUTO":
+      return BookingApprovalMode.BOOKING_APPROVAL_MODE_AUTO;
+    case 1:
+    case "BOOKING_APPROVAL_MODE_MANUAL":
+      return BookingApprovalMode.BOOKING_APPROVAL_MODE_MANUAL;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return BookingApprovalMode.UNRECOGNIZED;
+  }
+}
+
+export function bookingApprovalModeToJSON(object: BookingApprovalMode): string {
+  switch (object) {
+    case BookingApprovalMode.BOOKING_APPROVAL_MODE_AUTO:
+      return "BOOKING_APPROVAL_MODE_AUTO";
+    case BookingApprovalMode.BOOKING_APPROVAL_MODE_MANUAL:
+      return "BOOKING_APPROVAL_MODE_MANUAL";
+    case BookingApprovalMode.UNRECOGNIZED:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+
 export interface Stop {
   stopOrder: number;
   cityName: string;
@@ -37,6 +70,7 @@ export interface CreateRideRequest {
   departureTime: number;
   pricePerSeat: number;
   stops: Stop[];
+  approvalMode: BookingApprovalMode;
 }
 
 export interface CreateRideResponse {
@@ -53,6 +87,7 @@ export interface UpdateRideRequest {
   departureTime: number;
   pricePerSeat: number;
   stops: Stop[];
+  approvalMode: BookingApprovalMode;
 }
 
 export interface UpdateRideResponse {
@@ -82,6 +117,9 @@ export interface GetRideResponse {
   departureTime: number;
   pricePerSeat: number;
   stops: Stop[];
+  approvalMode: BookingApprovalMode;
+  /** Database value, e.g. 'ACTIVE' | 'CANCELLED' */
+  rideStatus: string;
 }
 
 export interface ListDriverRidesRequest {
@@ -98,6 +136,9 @@ export interface RideListItem {
   departureTime: number;
   pricePerSeat: number;
   stops: Stop[];
+  approvalMode: BookingApprovalMode;
+  /** Database value, e.g. 'ACTIVE' | 'CANCELLED' */
+  rideStatus: string;
 }
 
 export interface ListDriverRidesResponse {
@@ -107,6 +148,8 @@ export interface ListDriverRidesResponse {
 export interface CheckSeatAvailabilityRequest {
   rideId: string;
   requestedSeats: number;
+  pickupStopOrder?: number | undefined;
+  dropoffStopOrder?: number | undefined;
 }
 
 export interface CheckSeatAvailabilityResponse {
@@ -117,6 +160,8 @@ export interface CheckSeatAvailabilityResponse {
 export interface ReserveSeatsRequest {
   rideId: string;
   seatCount: number;
+  pickupStopOrder?: number | undefined;
+  dropoffStopOrder?: number | undefined;
 }
 
 export interface ReserveSeatsResponse {
@@ -126,6 +171,8 @@ export interface ReserveSeatsResponse {
 export interface ReleaseSeatsRequest {
   rideId: string;
   seatCount: number;
+  pickupStopOrder?: number | undefined;
+  dropoffStopOrder?: number | undefined;
 }
 
 export interface ReleaseSeatsResponse {
@@ -249,6 +296,7 @@ function createBaseCreateRideRequest(): CreateRideRequest {
     departureTime: 0,
     pricePerSeat: 0,
     stops: [],
+    approvalMode: 0,
   };
 }
 
@@ -274,6 +322,9 @@ export const CreateRideRequest: MessageFns<CreateRideRequest> = {
     }
     for (const v of message.stops) {
       Stop.encode(v!, writer.uint32(58).fork()).join();
+    }
+    if (message.approvalMode !== 0) {
+      writer.uint32(64).int32(message.approvalMode);
     }
     return writer;
   },
@@ -341,6 +392,14 @@ export const CreateRideRequest: MessageFns<CreateRideRequest> = {
           message.stops.push(Stop.decode(reader, reader.uint32()));
           continue;
         }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.approvalMode = reader.int32() as any;
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -359,6 +418,7 @@ export const CreateRideRequest: MessageFns<CreateRideRequest> = {
       departureTime: isSet(object.departureTime) ? globalThis.Number(object.departureTime) : 0,
       pricePerSeat: isSet(object.pricePerSeat) ? globalThis.Number(object.pricePerSeat) : 0,
       stops: globalThis.Array.isArray(object?.stops) ? object.stops.map((e: any) => Stop.fromJSON(e)) : [],
+      approvalMode: isSet(object.approvalMode) ? bookingApprovalModeFromJSON(object.approvalMode) : 0,
     };
   },
 
@@ -385,6 +445,9 @@ export const CreateRideRequest: MessageFns<CreateRideRequest> = {
     if (message.stops?.length) {
       obj.stops = message.stops.map((e) => Stop.toJSON(e));
     }
+    if (message.approvalMode !== 0) {
+      obj.approvalMode = bookingApprovalModeToJSON(message.approvalMode);
+    }
     return obj;
   },
 
@@ -400,6 +463,7 @@ export const CreateRideRequest: MessageFns<CreateRideRequest> = {
     message.departureTime = object.departureTime ?? 0;
     message.pricePerSeat = object.pricePerSeat ?? 0;
     message.stops = object.stops?.map((e) => Stop.fromPartial(e)) || [];
+    message.approvalMode = object.approvalMode ?? 0;
     return message;
   },
 };
@@ -472,6 +536,7 @@ function createBaseUpdateRideRequest(): UpdateRideRequest {
     departureTime: 0,
     pricePerSeat: 0,
     stops: [],
+    approvalMode: 0,
   };
 }
 
@@ -500,6 +565,9 @@ export const UpdateRideRequest: MessageFns<UpdateRideRequest> = {
     }
     for (const v of message.stops) {
       Stop.encode(v!, writer.uint32(66).fork()).join();
+    }
+    if (message.approvalMode !== 0) {
+      writer.uint32(72).int32(message.approvalMode);
     }
     return writer;
   },
@@ -575,6 +643,14 @@ export const UpdateRideRequest: MessageFns<UpdateRideRequest> = {
           message.stops.push(Stop.decode(reader, reader.uint32()));
           continue;
         }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.approvalMode = reader.int32() as any;
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -594,6 +670,7 @@ export const UpdateRideRequest: MessageFns<UpdateRideRequest> = {
       departureTime: isSet(object.departureTime) ? globalThis.Number(object.departureTime) : 0,
       pricePerSeat: isSet(object.pricePerSeat) ? globalThis.Number(object.pricePerSeat) : 0,
       stops: globalThis.Array.isArray(object?.stops) ? object.stops.map((e: any) => Stop.fromJSON(e)) : [],
+      approvalMode: isSet(object.approvalMode) ? bookingApprovalModeFromJSON(object.approvalMode) : 0,
     };
   },
 
@@ -623,6 +700,9 @@ export const UpdateRideRequest: MessageFns<UpdateRideRequest> = {
     if (message.stops?.length) {
       obj.stops = message.stops.map((e) => Stop.toJSON(e));
     }
+    if (message.approvalMode !== 0) {
+      obj.approvalMode = bookingApprovalModeToJSON(message.approvalMode);
+    }
     return obj;
   },
 
@@ -639,6 +719,7 @@ export const UpdateRideRequest: MessageFns<UpdateRideRequest> = {
     message.departureTime = object.departureTime ?? 0;
     message.pricePerSeat = object.pricePerSeat ?? 0;
     message.stops = object.stops?.map((e) => Stop.fromPartial(e)) || [];
+    message.approvalMode = object.approvalMode ?? 0;
     return message;
   },
 };
@@ -903,6 +984,8 @@ function createBaseGetRideResponse(): GetRideResponse {
     departureTime: 0,
     pricePerSeat: 0,
     stops: [],
+    approvalMode: 0,
+    rideStatus: "",
   };
 }
 
@@ -931,6 +1014,12 @@ export const GetRideResponse: MessageFns<GetRideResponse> = {
     }
     for (const v of message.stops) {
       Stop.encode(v!, writer.uint32(66).fork()).join();
+    }
+    if (message.approvalMode !== 0) {
+      writer.uint32(72).int32(message.approvalMode);
+    }
+    if (message.rideStatus !== "") {
+      writer.uint32(82).string(message.rideStatus);
     }
     return writer;
   },
@@ -1006,6 +1095,22 @@ export const GetRideResponse: MessageFns<GetRideResponse> = {
           message.stops.push(Stop.decode(reader, reader.uint32()));
           continue;
         }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.approvalMode = reader.int32() as any;
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.rideStatus = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1025,6 +1130,8 @@ export const GetRideResponse: MessageFns<GetRideResponse> = {
       departureTime: isSet(object.departureTime) ? globalThis.Number(object.departureTime) : 0,
       pricePerSeat: isSet(object.pricePerSeat) ? globalThis.Number(object.pricePerSeat) : 0,
       stops: globalThis.Array.isArray(object?.stops) ? object.stops.map((e: any) => Stop.fromJSON(e)) : [],
+      approvalMode: isSet(object.approvalMode) ? bookingApprovalModeFromJSON(object.approvalMode) : 0,
+      rideStatus: isSet(object.rideStatus) ? globalThis.String(object.rideStatus) : "",
     };
   },
 
@@ -1054,6 +1161,12 @@ export const GetRideResponse: MessageFns<GetRideResponse> = {
     if (message.stops?.length) {
       obj.stops = message.stops.map((e) => Stop.toJSON(e));
     }
+    if (message.approvalMode !== 0) {
+      obj.approvalMode = bookingApprovalModeToJSON(message.approvalMode);
+    }
+    if (message.rideStatus !== "") {
+      obj.rideStatus = message.rideStatus;
+    }
     return obj;
   },
 
@@ -1070,6 +1183,8 @@ export const GetRideResponse: MessageFns<GetRideResponse> = {
     message.departureTime = object.departureTime ?? 0;
     message.pricePerSeat = object.pricePerSeat ?? 0;
     message.stops = object.stops?.map((e) => Stop.fromPartial(e)) || [];
+    message.approvalMode = object.approvalMode ?? 0;
+    message.rideStatus = object.rideStatus ?? "";
     return message;
   },
 };
@@ -1142,6 +1257,8 @@ function createBaseRideListItem(): RideListItem {
     departureTime: 0,
     pricePerSeat: 0,
     stops: [],
+    approvalMode: 0,
+    rideStatus: "",
   };
 }
 
@@ -1170,6 +1287,12 @@ export const RideListItem: MessageFns<RideListItem> = {
     }
     for (const v of message.stops) {
       Stop.encode(v!, writer.uint32(66).fork()).join();
+    }
+    if (message.approvalMode !== 0) {
+      writer.uint32(72).int32(message.approvalMode);
+    }
+    if (message.rideStatus !== "") {
+      writer.uint32(82).string(message.rideStatus);
     }
     return writer;
   },
@@ -1245,6 +1368,22 @@ export const RideListItem: MessageFns<RideListItem> = {
           message.stops.push(Stop.decode(reader, reader.uint32()));
           continue;
         }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.approvalMode = reader.int32() as any;
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.rideStatus = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1264,6 +1403,8 @@ export const RideListItem: MessageFns<RideListItem> = {
       departureTime: isSet(object.departureTime) ? globalThis.Number(object.departureTime) : 0,
       pricePerSeat: isSet(object.pricePerSeat) ? globalThis.Number(object.pricePerSeat) : 0,
       stops: globalThis.Array.isArray(object?.stops) ? object.stops.map((e: any) => Stop.fromJSON(e)) : [],
+      approvalMode: isSet(object.approvalMode) ? bookingApprovalModeFromJSON(object.approvalMode) : 0,
+      rideStatus: isSet(object.rideStatus) ? globalThis.String(object.rideStatus) : "",
     };
   },
 
@@ -1293,6 +1434,12 @@ export const RideListItem: MessageFns<RideListItem> = {
     if (message.stops?.length) {
       obj.stops = message.stops.map((e) => Stop.toJSON(e));
     }
+    if (message.approvalMode !== 0) {
+      obj.approvalMode = bookingApprovalModeToJSON(message.approvalMode);
+    }
+    if (message.rideStatus !== "") {
+      obj.rideStatus = message.rideStatus;
+    }
     return obj;
   },
 
@@ -1309,6 +1456,8 @@ export const RideListItem: MessageFns<RideListItem> = {
     message.departureTime = object.departureTime ?? 0;
     message.pricePerSeat = object.pricePerSeat ?? 0;
     message.stops = object.stops?.map((e) => Stop.fromPartial(e)) || [];
+    message.approvalMode = object.approvalMode ?? 0;
+    message.rideStatus = object.rideStatus ?? "";
     return message;
   },
 };
@@ -1374,7 +1523,7 @@ export const ListDriverRidesResponse: MessageFns<ListDriverRidesResponse> = {
 };
 
 function createBaseCheckSeatAvailabilityRequest(): CheckSeatAvailabilityRequest {
-  return { rideId: "", requestedSeats: 0 };
+  return { rideId: "", requestedSeats: 0, pickupStopOrder: undefined, dropoffStopOrder: undefined };
 }
 
 export const CheckSeatAvailabilityRequest: MessageFns<CheckSeatAvailabilityRequest> = {
@@ -1384,6 +1533,12 @@ export const CheckSeatAvailabilityRequest: MessageFns<CheckSeatAvailabilityReque
     }
     if (message.requestedSeats !== 0) {
       writer.uint32(16).int32(message.requestedSeats);
+    }
+    if (message.pickupStopOrder !== undefined) {
+      writer.uint32(24).int32(message.pickupStopOrder);
+    }
+    if (message.dropoffStopOrder !== undefined) {
+      writer.uint32(32).int32(message.dropoffStopOrder);
     }
     return writer;
   },
@@ -1411,6 +1566,22 @@ export const CheckSeatAvailabilityRequest: MessageFns<CheckSeatAvailabilityReque
           message.requestedSeats = reader.int32();
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.pickupStopOrder = reader.int32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.dropoffStopOrder = reader.int32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1424,6 +1595,8 @@ export const CheckSeatAvailabilityRequest: MessageFns<CheckSeatAvailabilityReque
     return {
       rideId: isSet(object.rideId) ? globalThis.String(object.rideId) : "",
       requestedSeats: isSet(object.requestedSeats) ? globalThis.Number(object.requestedSeats) : 0,
+      pickupStopOrder: isSet(object.pickupStopOrder) ? globalThis.Number(object.pickupStopOrder) : undefined,
+      dropoffStopOrder: isSet(object.dropoffStopOrder) ? globalThis.Number(object.dropoffStopOrder) : undefined,
     };
   },
 
@@ -1435,6 +1608,12 @@ export const CheckSeatAvailabilityRequest: MessageFns<CheckSeatAvailabilityReque
     if (message.requestedSeats !== 0) {
       obj.requestedSeats = Math.round(message.requestedSeats);
     }
+    if (message.pickupStopOrder !== undefined) {
+      obj.pickupStopOrder = Math.round(message.pickupStopOrder);
+    }
+    if (message.dropoffStopOrder !== undefined) {
+      obj.dropoffStopOrder = Math.round(message.dropoffStopOrder);
+    }
     return obj;
   },
 
@@ -1445,6 +1624,8 @@ export const CheckSeatAvailabilityRequest: MessageFns<CheckSeatAvailabilityReque
     const message = createBaseCheckSeatAvailabilityRequest();
     message.rideId = object.rideId ?? "";
     message.requestedSeats = object.requestedSeats ?? 0;
+    message.pickupStopOrder = object.pickupStopOrder ?? undefined;
+    message.dropoffStopOrder = object.dropoffStopOrder ?? undefined;
     return message;
   },
 };
@@ -1528,7 +1709,7 @@ export const CheckSeatAvailabilityResponse: MessageFns<CheckSeatAvailabilityResp
 };
 
 function createBaseReserveSeatsRequest(): ReserveSeatsRequest {
-  return { rideId: "", seatCount: 0 };
+  return { rideId: "", seatCount: 0, pickupStopOrder: undefined, dropoffStopOrder: undefined };
 }
 
 export const ReserveSeatsRequest: MessageFns<ReserveSeatsRequest> = {
@@ -1538,6 +1719,12 @@ export const ReserveSeatsRequest: MessageFns<ReserveSeatsRequest> = {
     }
     if (message.seatCount !== 0) {
       writer.uint32(16).int32(message.seatCount);
+    }
+    if (message.pickupStopOrder !== undefined) {
+      writer.uint32(24).int32(message.pickupStopOrder);
+    }
+    if (message.dropoffStopOrder !== undefined) {
+      writer.uint32(32).int32(message.dropoffStopOrder);
     }
     return writer;
   },
@@ -1565,6 +1752,22 @@ export const ReserveSeatsRequest: MessageFns<ReserveSeatsRequest> = {
           message.seatCount = reader.int32();
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.pickupStopOrder = reader.int32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.dropoffStopOrder = reader.int32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1578,6 +1781,8 @@ export const ReserveSeatsRequest: MessageFns<ReserveSeatsRequest> = {
     return {
       rideId: isSet(object.rideId) ? globalThis.String(object.rideId) : "",
       seatCount: isSet(object.seatCount) ? globalThis.Number(object.seatCount) : 0,
+      pickupStopOrder: isSet(object.pickupStopOrder) ? globalThis.Number(object.pickupStopOrder) : undefined,
+      dropoffStopOrder: isSet(object.dropoffStopOrder) ? globalThis.Number(object.dropoffStopOrder) : undefined,
     };
   },
 
@@ -1589,6 +1794,12 @@ export const ReserveSeatsRequest: MessageFns<ReserveSeatsRequest> = {
     if (message.seatCount !== 0) {
       obj.seatCount = Math.round(message.seatCount);
     }
+    if (message.pickupStopOrder !== undefined) {
+      obj.pickupStopOrder = Math.round(message.pickupStopOrder);
+    }
+    if (message.dropoffStopOrder !== undefined) {
+      obj.dropoffStopOrder = Math.round(message.dropoffStopOrder);
+    }
     return obj;
   },
 
@@ -1599,6 +1810,8 @@ export const ReserveSeatsRequest: MessageFns<ReserveSeatsRequest> = {
     const message = createBaseReserveSeatsRequest();
     message.rideId = object.rideId ?? "";
     message.seatCount = object.seatCount ?? 0;
+    message.pickupStopOrder = object.pickupStopOrder ?? undefined;
+    message.dropoffStopOrder = object.dropoffStopOrder ?? undefined;
     return message;
   },
 };
@@ -1662,7 +1875,7 @@ export const ReserveSeatsResponse: MessageFns<ReserveSeatsResponse> = {
 };
 
 function createBaseReleaseSeatsRequest(): ReleaseSeatsRequest {
-  return { rideId: "", seatCount: 0 };
+  return { rideId: "", seatCount: 0, pickupStopOrder: undefined, dropoffStopOrder: undefined };
 }
 
 export const ReleaseSeatsRequest: MessageFns<ReleaseSeatsRequest> = {
@@ -1672,6 +1885,12 @@ export const ReleaseSeatsRequest: MessageFns<ReleaseSeatsRequest> = {
     }
     if (message.seatCount !== 0) {
       writer.uint32(16).int32(message.seatCount);
+    }
+    if (message.pickupStopOrder !== undefined) {
+      writer.uint32(24).int32(message.pickupStopOrder);
+    }
+    if (message.dropoffStopOrder !== undefined) {
+      writer.uint32(32).int32(message.dropoffStopOrder);
     }
     return writer;
   },
@@ -1699,6 +1918,22 @@ export const ReleaseSeatsRequest: MessageFns<ReleaseSeatsRequest> = {
           message.seatCount = reader.int32();
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.pickupStopOrder = reader.int32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.dropoffStopOrder = reader.int32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1712,6 +1947,8 @@ export const ReleaseSeatsRequest: MessageFns<ReleaseSeatsRequest> = {
     return {
       rideId: isSet(object.rideId) ? globalThis.String(object.rideId) : "",
       seatCount: isSet(object.seatCount) ? globalThis.Number(object.seatCount) : 0,
+      pickupStopOrder: isSet(object.pickupStopOrder) ? globalThis.Number(object.pickupStopOrder) : undefined,
+      dropoffStopOrder: isSet(object.dropoffStopOrder) ? globalThis.Number(object.dropoffStopOrder) : undefined,
     };
   },
 
@@ -1723,6 +1960,12 @@ export const ReleaseSeatsRequest: MessageFns<ReleaseSeatsRequest> = {
     if (message.seatCount !== 0) {
       obj.seatCount = Math.round(message.seatCount);
     }
+    if (message.pickupStopOrder !== undefined) {
+      obj.pickupStopOrder = Math.round(message.pickupStopOrder);
+    }
+    if (message.dropoffStopOrder !== undefined) {
+      obj.dropoffStopOrder = Math.round(message.dropoffStopOrder);
+    }
     return obj;
   },
 
@@ -1733,6 +1976,8 @@ export const ReleaseSeatsRequest: MessageFns<ReleaseSeatsRequest> = {
     const message = createBaseReleaseSeatsRequest();
     message.rideId = object.rideId ?? "";
     message.seatCount = object.seatCount ?? 0;
+    message.pickupStopOrder = object.pickupStopOrder ?? undefined;
+    message.dropoffStopOrder = object.dropoffStopOrder ?? undefined;
     return message;
   },
 };

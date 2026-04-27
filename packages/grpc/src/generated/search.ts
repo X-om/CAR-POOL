@@ -39,9 +39,23 @@ export interface RideInfo {
   destinationCity: string;
   /** Unix timestamp */
   departureTime: number;
-  pricePerSeat: number;
+  /** Driver-set price for the full ride (source->destination) */
+  driverPricePerSeat: number;
+  /** Computed by the system for the requested leg (pickup->dropoff) */
+  estimatedPricePerSeat: number;
   availableSeats: number;
+  /** The matched stops for pickup/dropoff along the ride route. */
+  pickupStopOrder: number;
+  dropoffStopOrder: number;
+  routeStops: RouteStop[];
   driverRating: number;
+}
+
+export interface RouteStop {
+  stopOrder: number;
+  cityName: string;
+  latitude: number;
+  longitude: number;
 }
 
 export interface SearchRidesResponse {
@@ -60,8 +74,9 @@ export interface GetRideSearchDataResponse {
   destinationCity: string;
   /** Unix timestamp */
   departureTime: number;
-  pricePerSeat: number;
+  driverPricePerSeat: number;
   availableSeats: number;
+  routeStops: RouteStop[];
   driverRating: number;
 }
 
@@ -220,8 +235,12 @@ function createBaseRideInfo(): RideInfo {
     sourceCity: "",
     destinationCity: "",
     departureTime: 0,
-    pricePerSeat: 0,
+    driverPricePerSeat: 0,
+    estimatedPricePerSeat: 0,
     availableSeats: 0,
+    pickupStopOrder: 0,
+    dropoffStopOrder: 0,
+    routeStops: [],
     driverRating: 0,
   };
 }
@@ -246,14 +265,26 @@ export const RideInfo: MessageFns<RideInfo> = {
     if (message.departureTime !== 0) {
       writer.uint32(48).int64(message.departureTime);
     }
-    if (message.pricePerSeat !== 0) {
-      writer.uint32(57).double(message.pricePerSeat);
+    if (message.driverPricePerSeat !== 0) {
+      writer.uint32(57).double(message.driverPricePerSeat);
+    }
+    if (message.estimatedPricePerSeat !== 0) {
+      writer.uint32(65).double(message.estimatedPricePerSeat);
     }
     if (message.availableSeats !== 0) {
-      writer.uint32(64).int32(message.availableSeats);
+      writer.uint32(72).int32(message.availableSeats);
+    }
+    if (message.pickupStopOrder !== 0) {
+      writer.uint32(80).int32(message.pickupStopOrder);
+    }
+    if (message.dropoffStopOrder !== 0) {
+      writer.uint32(88).int32(message.dropoffStopOrder);
+    }
+    for (const v of message.routeStops) {
+      RouteStop.encode(v!, writer.uint32(98).fork()).join();
     }
     if (message.driverRating !== 0) {
-      writer.uint32(73).double(message.driverRating);
+      writer.uint32(105).double(message.driverRating);
     }
     return writer;
   },
@@ -318,19 +349,51 @@ export const RideInfo: MessageFns<RideInfo> = {
             break;
           }
 
-          message.pricePerSeat = reader.double();
+          message.driverPricePerSeat = reader.double();
           continue;
         }
         case 8: {
-          if (tag !== 64) {
+          if (tag !== 65) {
+            break;
+          }
+
+          message.estimatedPricePerSeat = reader.double();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
             break;
           }
 
           message.availableSeats = reader.int32();
           continue;
         }
-        case 9: {
-          if (tag !== 73) {
+        case 10: {
+          if (tag !== 80) {
+            break;
+          }
+
+          message.pickupStopOrder = reader.int32();
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+
+          message.dropoffStopOrder = reader.int32();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.routeStops.push(RouteStop.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 13: {
+          if (tag !== 105) {
             break;
           }
 
@@ -354,8 +417,14 @@ export const RideInfo: MessageFns<RideInfo> = {
       sourceCity: isSet(object.sourceCity) ? globalThis.String(object.sourceCity) : "",
       destinationCity: isSet(object.destinationCity) ? globalThis.String(object.destinationCity) : "",
       departureTime: isSet(object.departureTime) ? globalThis.Number(object.departureTime) : 0,
-      pricePerSeat: isSet(object.pricePerSeat) ? globalThis.Number(object.pricePerSeat) : 0,
+      driverPricePerSeat: isSet(object.driverPricePerSeat) ? globalThis.Number(object.driverPricePerSeat) : 0,
+      estimatedPricePerSeat: isSet(object.estimatedPricePerSeat) ? globalThis.Number(object.estimatedPricePerSeat) : 0,
       availableSeats: isSet(object.availableSeats) ? globalThis.Number(object.availableSeats) : 0,
+      pickupStopOrder: isSet(object.pickupStopOrder) ? globalThis.Number(object.pickupStopOrder) : 0,
+      dropoffStopOrder: isSet(object.dropoffStopOrder) ? globalThis.Number(object.dropoffStopOrder) : 0,
+      routeStops: globalThis.Array.isArray(object?.routeStops)
+        ? object.routeStops.map((e: any) => RouteStop.fromJSON(e))
+        : [],
       driverRating: isSet(object.driverRating) ? globalThis.Number(object.driverRating) : 0,
     };
   },
@@ -380,11 +449,23 @@ export const RideInfo: MessageFns<RideInfo> = {
     if (message.departureTime !== 0) {
       obj.departureTime = Math.round(message.departureTime);
     }
-    if (message.pricePerSeat !== 0) {
-      obj.pricePerSeat = message.pricePerSeat;
+    if (message.driverPricePerSeat !== 0) {
+      obj.driverPricePerSeat = message.driverPricePerSeat;
+    }
+    if (message.estimatedPricePerSeat !== 0) {
+      obj.estimatedPricePerSeat = message.estimatedPricePerSeat;
     }
     if (message.availableSeats !== 0) {
       obj.availableSeats = Math.round(message.availableSeats);
+    }
+    if (message.pickupStopOrder !== 0) {
+      obj.pickupStopOrder = Math.round(message.pickupStopOrder);
+    }
+    if (message.dropoffStopOrder !== 0) {
+      obj.dropoffStopOrder = Math.round(message.dropoffStopOrder);
+    }
+    if (message.routeStops?.length) {
+      obj.routeStops = message.routeStops.map((e) => RouteStop.toJSON(e));
     }
     if (message.driverRating !== 0) {
       obj.driverRating = message.driverRating;
@@ -403,9 +484,121 @@ export const RideInfo: MessageFns<RideInfo> = {
     message.sourceCity = object.sourceCity ?? "";
     message.destinationCity = object.destinationCity ?? "";
     message.departureTime = object.departureTime ?? 0;
-    message.pricePerSeat = object.pricePerSeat ?? 0;
+    message.driverPricePerSeat = object.driverPricePerSeat ?? 0;
+    message.estimatedPricePerSeat = object.estimatedPricePerSeat ?? 0;
     message.availableSeats = object.availableSeats ?? 0;
+    message.pickupStopOrder = object.pickupStopOrder ?? 0;
+    message.dropoffStopOrder = object.dropoffStopOrder ?? 0;
+    message.routeStops = object.routeStops?.map((e) => RouteStop.fromPartial(e)) || [];
     message.driverRating = object.driverRating ?? 0;
+    return message;
+  },
+};
+
+function createBaseRouteStop(): RouteStop {
+  return { stopOrder: 0, cityName: "", latitude: 0, longitude: 0 };
+}
+
+export const RouteStop: MessageFns<RouteStop> = {
+  encode(message: RouteStop, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.stopOrder !== 0) {
+      writer.uint32(8).int32(message.stopOrder);
+    }
+    if (message.cityName !== "") {
+      writer.uint32(18).string(message.cityName);
+    }
+    if (message.latitude !== 0) {
+      writer.uint32(25).double(message.latitude);
+    }
+    if (message.longitude !== 0) {
+      writer.uint32(33).double(message.longitude);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RouteStop {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRouteStop();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.stopOrder = reader.int32();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.cityName = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 25) {
+            break;
+          }
+
+          message.latitude = reader.double();
+          continue;
+        }
+        case 4: {
+          if (tag !== 33) {
+            break;
+          }
+
+          message.longitude = reader.double();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RouteStop {
+    return {
+      stopOrder: isSet(object.stopOrder) ? globalThis.Number(object.stopOrder) : 0,
+      cityName: isSet(object.cityName) ? globalThis.String(object.cityName) : "",
+      latitude: isSet(object.latitude) ? globalThis.Number(object.latitude) : 0,
+      longitude: isSet(object.longitude) ? globalThis.Number(object.longitude) : 0,
+    };
+  },
+
+  toJSON(message: RouteStop): unknown {
+    const obj: any = {};
+    if (message.stopOrder !== 0) {
+      obj.stopOrder = Math.round(message.stopOrder);
+    }
+    if (message.cityName !== "") {
+      obj.cityName = message.cityName;
+    }
+    if (message.latitude !== 0) {
+      obj.latitude = message.latitude;
+    }
+    if (message.longitude !== 0) {
+      obj.longitude = message.longitude;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RouteStop>, I>>(base?: I): RouteStop {
+    return RouteStop.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RouteStop>, I>>(object: I): RouteStop {
+    const message = createBaseRouteStop();
+    message.stopOrder = object.stopOrder ?? 0;
+    message.cityName = object.cityName ?? "";
+    message.latitude = object.latitude ?? 0;
+    message.longitude = object.longitude ?? 0;
     return message;
   },
 };
@@ -534,8 +727,9 @@ function createBaseGetRideSearchDataResponse(): GetRideSearchDataResponse {
     sourceCity: "",
     destinationCity: "",
     departureTime: 0,
-    pricePerSeat: 0,
+    driverPricePerSeat: 0,
     availableSeats: 0,
+    routeStops: [],
     driverRating: 0,
   };
 }
@@ -560,14 +754,17 @@ export const GetRideSearchDataResponse: MessageFns<GetRideSearchDataResponse> = 
     if (message.departureTime !== 0) {
       writer.uint32(48).int64(message.departureTime);
     }
-    if (message.pricePerSeat !== 0) {
-      writer.uint32(57).double(message.pricePerSeat);
+    if (message.driverPricePerSeat !== 0) {
+      writer.uint32(57).double(message.driverPricePerSeat);
     }
     if (message.availableSeats !== 0) {
       writer.uint32(64).int32(message.availableSeats);
     }
+    for (const v of message.routeStops) {
+      RouteStop.encode(v!, writer.uint32(74).fork()).join();
+    }
     if (message.driverRating !== 0) {
-      writer.uint32(73).double(message.driverRating);
+      writer.uint32(81).double(message.driverRating);
     }
     return writer;
   },
@@ -632,7 +829,7 @@ export const GetRideSearchDataResponse: MessageFns<GetRideSearchDataResponse> = 
             break;
           }
 
-          message.pricePerSeat = reader.double();
+          message.driverPricePerSeat = reader.double();
           continue;
         }
         case 8: {
@@ -644,7 +841,15 @@ export const GetRideSearchDataResponse: MessageFns<GetRideSearchDataResponse> = 
           continue;
         }
         case 9: {
-          if (tag !== 73) {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.routeStops.push(RouteStop.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 10: {
+          if (tag !== 81) {
             break;
           }
 
@@ -668,8 +873,11 @@ export const GetRideSearchDataResponse: MessageFns<GetRideSearchDataResponse> = 
       sourceCity: isSet(object.sourceCity) ? globalThis.String(object.sourceCity) : "",
       destinationCity: isSet(object.destinationCity) ? globalThis.String(object.destinationCity) : "",
       departureTime: isSet(object.departureTime) ? globalThis.Number(object.departureTime) : 0,
-      pricePerSeat: isSet(object.pricePerSeat) ? globalThis.Number(object.pricePerSeat) : 0,
+      driverPricePerSeat: isSet(object.driverPricePerSeat) ? globalThis.Number(object.driverPricePerSeat) : 0,
       availableSeats: isSet(object.availableSeats) ? globalThis.Number(object.availableSeats) : 0,
+      routeStops: globalThis.Array.isArray(object?.routeStops)
+        ? object.routeStops.map((e: any) => RouteStop.fromJSON(e))
+        : [],
       driverRating: isSet(object.driverRating) ? globalThis.Number(object.driverRating) : 0,
     };
   },
@@ -694,11 +902,14 @@ export const GetRideSearchDataResponse: MessageFns<GetRideSearchDataResponse> = 
     if (message.departureTime !== 0) {
       obj.departureTime = Math.round(message.departureTime);
     }
-    if (message.pricePerSeat !== 0) {
-      obj.pricePerSeat = message.pricePerSeat;
+    if (message.driverPricePerSeat !== 0) {
+      obj.driverPricePerSeat = message.driverPricePerSeat;
     }
     if (message.availableSeats !== 0) {
       obj.availableSeats = Math.round(message.availableSeats);
+    }
+    if (message.routeStops?.length) {
+      obj.routeStops = message.routeStops.map((e) => RouteStop.toJSON(e));
     }
     if (message.driverRating !== 0) {
       obj.driverRating = message.driverRating;
@@ -717,8 +928,9 @@ export const GetRideSearchDataResponse: MessageFns<GetRideSearchDataResponse> = 
     message.sourceCity = object.sourceCity ?? "";
     message.destinationCity = object.destinationCity ?? "";
     message.departureTime = object.departureTime ?? 0;
-    message.pricePerSeat = object.pricePerSeat ?? 0;
+    message.driverPricePerSeat = object.driverPricePerSeat ?? 0;
     message.availableSeats = object.availableSeats ?? 0;
+    message.routeStops = object.routeStops?.map((e) => RouteStop.fromPartial(e)) || [];
     message.driverRating = object.driverRating ?? 0;
     return message;
   },

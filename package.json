@@ -3,7 +3,10 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --concurrency=20",
+    "docker:up": "docker compose -f infra/docker/docker-compose.yml --profile app up -d --build",
+    "docker:down": "docker compose -f infra/docker/docker-compose.yml --profile app down",
+    "docker:logs": "docker compose -f infra/docker/docker-compose.yml --profile app logs -f --tail=200",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types"
@@ -13,7 +16,6 @@
     "turbo": "^2.8.17",
     "typescript": "5.9.2"
   },
-  
   "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=18"

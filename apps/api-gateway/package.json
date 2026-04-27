@@ -4,15 +4,24 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -b",
+    "check-types": "tsc -b --pretty false --noEmit",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@repo/typescript-config": "workspace:*"
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.15.3",
+    "tsx": "^4.20.5"
   },
   "dependencies": {
+    "@grpc/grpc-js": "^1.14.3",
+    "@repo/auth": "workspace:*",
+    "@repo/config": "workspace:*",
+    "@repo/grpc": "workspace:*",
     "@repo/redis": "workspace:*",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
@@ -20,6 +29,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
     "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
     "express": "^5.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",

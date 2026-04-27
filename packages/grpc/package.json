@@ -2,17 +2,20 @@
   "name": "@repo/grpc",
   "version": "1.0.0",
   "description": "",
-  "main": "src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "build" : "tsc -b",
-    "generate": "grpc_tools_node_protoc -I ./protos --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=src/generated --ts_proto_opt=outputServices=grpc-js,esModuleInterop=true src/protos/*.proto"
+    "generate": "grpc_tools_node_protoc -I ./src/protos --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=src/generated --ts_proto_opt=outputServices=grpc-js,esModuleInterop=true src/protos/*.proto"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "export" : {
-    "types" : "./dist/index.d.ts",
-    "default" : "./dist/index.d.js"
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
@@ -22,6 +25,7 @@
   "dependencies": {
     "@bufbuild/protobuf": "^2.9.0",
     "@grpc/grpc-js": "^1.14.3",
-    "@grpc/proto-loader": "^0.8.0"
+    "@grpc/proto-loader": "^0.8.0",
+    "@repo/auth": "workspace:*"
   }
 }

@@ -1,0 +1,16 @@
+FROM node:24-bookworm-slim
+
+WORKDIR /app
+
+# pnpm via corepack
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+
+# Copy only what's needed for install first (better layer caching)
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY apps ./apps
+COPY packages ./packages
+
+# Install all workspace deps
+RUN pnpm -w install --frozen-lockfile
+
+ENV NODE_ENV=development

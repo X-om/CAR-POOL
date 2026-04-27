@@ -32,6 +32,13 @@ export interface Notification {
   /** Unix timestamp */
   timestamp: number;
   isRead: boolean;
+  type: string;
+  title: string;
+  topic: string;
+  eventType: string;
+  aggregateId: string;
+  occurredAt: string;
+  payloadJson: string;
 }
 
 export interface GetUserNotificationsResponse {
@@ -106,7 +113,20 @@ export const GetUserNotificationsRequest: MessageFns<GetUserNotificationsRequest
 };
 
 function createBaseNotification(): Notification {
-  return { notificationId: "", userId: "", message: "", timestamp: 0, isRead: false };
+  return {
+    notificationId: "",
+    userId: "",
+    message: "",
+    timestamp: 0,
+    isRead: false,
+    type: "",
+    title: "",
+    topic: "",
+    eventType: "",
+    aggregateId: "",
+    occurredAt: "",
+    payloadJson: "",
+  };
 }
 
 export const Notification: MessageFns<Notification> = {
@@ -125,6 +145,27 @@ export const Notification: MessageFns<Notification> = {
     }
     if (message.isRead !== false) {
       writer.uint32(40).bool(message.isRead);
+    }
+    if (message.type !== "") {
+      writer.uint32(50).string(message.type);
+    }
+    if (message.title !== "") {
+      writer.uint32(58).string(message.title);
+    }
+    if (message.topic !== "") {
+      writer.uint32(66).string(message.topic);
+    }
+    if (message.eventType !== "") {
+      writer.uint32(74).string(message.eventType);
+    }
+    if (message.aggregateId !== "") {
+      writer.uint32(82).string(message.aggregateId);
+    }
+    if (message.occurredAt !== "") {
+      writer.uint32(90).string(message.occurredAt);
+    }
+    if (message.payloadJson !== "") {
+      writer.uint32(98).string(message.payloadJson);
     }
     return writer;
   },
@@ -176,6 +217,62 @@ export const Notification: MessageFns<Notification> = {
           message.isRead = reader.bool();
           continue;
         }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.type = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.title = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.topic = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.eventType = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.aggregateId = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.occurredAt = reader.string();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.payloadJson = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -192,6 +289,13 @@ export const Notification: MessageFns<Notification> = {
       message: isSet(object.message) ? globalThis.String(object.message) : "",
       timestamp: isSet(object.timestamp) ? globalThis.Number(object.timestamp) : 0,
       isRead: isSet(object.isRead) ? globalThis.Boolean(object.isRead) : false,
+      type: isSet(object.type) ? globalThis.String(object.type) : "",
+      title: isSet(object.title) ? globalThis.String(object.title) : "",
+      topic: isSet(object.topic) ? globalThis.String(object.topic) : "",
+      eventType: isSet(object.eventType) ? globalThis.String(object.eventType) : "",
+      aggregateId: isSet(object.aggregateId) ? globalThis.String(object.aggregateId) : "",
+      occurredAt: isSet(object.occurredAt) ? globalThis.String(object.occurredAt) : "",
+      payloadJson: isSet(object.payloadJson) ? globalThis.String(object.payloadJson) : "",
     };
   },
 
@@ -212,6 +316,27 @@ export const Notification: MessageFns<Notification> = {
     if (message.isRead !== false) {
       obj.isRead = message.isRead;
     }
+    if (message.type !== "") {
+      obj.type = message.type;
+    }
+    if (message.title !== "") {
+      obj.title = message.title;
+    }
+    if (message.topic !== "") {
+      obj.topic = message.topic;
+    }
+    if (message.eventType !== "") {
+      obj.eventType = message.eventType;
+    }
+    if (message.aggregateId !== "") {
+      obj.aggregateId = message.aggregateId;
+    }
+    if (message.occurredAt !== "") {
+      obj.occurredAt = message.occurredAt;
+    }
+    if (message.payloadJson !== "") {
+      obj.payloadJson = message.payloadJson;
+    }
     return obj;
   },
 
@@ -225,6 +350,13 @@ export const Notification: MessageFns<Notification> = {
     message.message = object.message ?? "";
     message.timestamp = object.timestamp ?? 0;
     message.isRead = object.isRead ?? false;
+    message.type = object.type ?? "";
+    message.title = object.title ?? "";
+    message.topic = object.topic ?? "";
+    message.eventType = object.eventType ?? "";
+    message.aggregateId = object.aggregateId ?? "";
+    message.occurredAt = object.occurredAt ?? "";
+    message.payloadJson = object.payloadJson ?? "";
     return message;
   },
 };

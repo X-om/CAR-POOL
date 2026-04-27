@@ -1,0 +1,62 @@
+{
+  "name": "@repo/mailer",
+  "version": "1.0.0",
+  "description": "Typed email job producer + Handlebars template registry for RideLink",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "check-types": "tsc -b --pretty false --noEmit"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.15.3"
+  },
+  "dependencies": {
+    "@repo/kafka": "workspace:*",
+    "handlebars": "^4.7.8",
+    "zod": "^4.3.6"
+  }
+}
+{
+  "name": "@repo/mailer",
+  "version": "1.0.0",
+  "description": "Typed email job producer + Handlebars template registry for RideLink",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "check-types": "tsc -b --pretty false --noEmit"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.15.3"
+  },
+  "dependencies": {
+    "@repo/kafka": "workspace:*",
+    "handlebars": "^4.7.8",
+    "zod": "^4.3.6"
+  }
+}

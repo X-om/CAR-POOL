@@ -4,6 +4,8 @@ package user;
 service UserService {
   rpc RegisterUser (RegisterUserRequest) returns (RegisterUserResponse);
   rpc VerifyOTP (VerifyOTPRequest) returns (VerifyOTPResponse);
+  rpc RequestEmailOTP (RequestEmailOTPRequest) returns (RequestEmailOTPResponse);
+  rpc ExchangeFirebaseIdToken (ExchangeFirebaseIdTokenRequest) returns (ExchangeFirebaseIdTokenResponse);
   rpc GetUser (GetUserRequest) returns (GetUserResponse);
   rpc GetUserProfile (GetUserProfileRequest) returns (GetUserProfileResponse);
   rpc UpdateUserProfile (UpdateUserProfileRequest) returns (UpdateUserProfileResponse);
@@ -22,6 +24,15 @@ message RegisterUserResponse {
   string otpSend = 2;
 }
 
+message RequestEmailOTPRequest {
+  string userId = 1;
+  string email = 2;
+}
+
+message RequestEmailOTPResponse {
+  string userId = 1;
+  string otpSend = 2;
+}
 
 message VerifyOTPRequest {
   string phoneNumber = 1;
@@ -29,6 +40,15 @@ message VerifyOTPRequest {
 }
 
 message VerifyOTPResponse {
+  string userId = 1;
+  string token = 2;
+}
+
+message ExchangeFirebaseIdTokenRequest {
+  string idToken = 1;
+}
+
+message ExchangeFirebaseIdTokenResponse {
   string userId = 1;
   string token = 2;
 }
@@ -42,7 +62,9 @@ message GetUserResponse {
   string phoneNumber = 2;
   string email = 3;
   bool isVerified = 4;
-  bool isDriver = 5;  
+  bool isDriver = 5;
+  bool isPhoneVerified = 6;
+  bool isEmailVerified = 7;
 }
 
 message GetUserProfileRequest {

@@ -12,6 +12,11 @@ service RideService {
     rpc  ReleaseSeats(ReleaseSeatsRequest) returns (ReleaseSeatsResponse);
 }
 
+enum BookingApprovalMode {
+    BOOKING_APPROVAL_MODE_AUTO = 0;
+    BOOKING_APPROVAL_MODE_MANUAL = 1;
+}
+
 message Stop {
   int32 stopOrder = 1;
   string cityName = 2;
@@ -27,6 +32,7 @@ message CreateRideRequest {
     int64 departureTime = 5; // Unix timestamp
     double pricePerSeat = 6;
     repeated Stop stops = 7;
+    BookingApprovalMode approvalMode = 8;
 }
 
 message CreateRideResponse {
@@ -42,6 +48,7 @@ message UpdateRideRequest {
     int64 departureTime = 6; // Unix timestamp
     double pricePerSeat = 7;
     repeated Stop stops = 8;
+    BookingApprovalMode approvalMode = 9;
 }
 
 message UpdateRideResponse {
@@ -70,6 +77,9 @@ message GetRideResponse {
     int64 departureTime = 6; // Unix timestamp
     double pricePerSeat = 7;
     repeated Stop stops = 8;
+    BookingApprovalMode approvalMode = 9;
+    // Database value, e.g. 'ACTIVE' | 'CANCELLED'
+    string rideStatus = 10;
 }
 
 message ListDriverRidesRequest {
@@ -85,6 +95,9 @@ message RideListItem {
     int64 departureTime = 6; // Unix timestamp
     double pricePerSeat = 7;
     repeated Stop stops = 8;
+    BookingApprovalMode approvalMode = 9;
+    // Database value, e.g. 'ACTIVE' | 'CANCELLED'
+    string rideStatus = 10;
 }
 
 message ListDriverRidesResponse {
@@ -94,6 +107,8 @@ message ListDriverRidesResponse {
 message CheckSeatAvailabilityRequest {
     string rideId = 1;
     int32 requestedSeats = 2;
+    optional int32 pickupStopOrder = 3;
+    optional int32 dropoffStopOrder = 4;
 }
 
 message CheckSeatAvailabilityResponse {
@@ -104,6 +119,8 @@ message CheckSeatAvailabilityResponse {
 message ReserveSeatsRequest {
     string rideId = 1;
     int32 seatCount = 2;
+    optional int32 pickupStopOrder = 3;
+    optional int32 dropoffStopOrder = 4;
 }
 
 message ReserveSeatsResponse {
@@ -113,6 +130,8 @@ message ReserveSeatsResponse {
 message ReleaseSeatsRequest {
     string rideId = 1;
     int32 seatCount = 2;
+    optional int32 pickupStopOrder = 3;
+    optional int32 dropoffStopOrder = 4;
 }
 
 message ReleaseSeatsResponse {

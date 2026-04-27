@@ -21,6 +21,8 @@ SELECT
     total_seats,
     available_seats,
 
+    approval_mode,
+
     ride_status,
     created_at
 FROM rides

@@ -3,9 +3,12 @@ package booking;
 
 service BookingService {
   rpc  CreateBooking(CreateBookingRequest) returns (CreateBookingResponse);
+  rpc  ApproveBooking(ApproveBookingRequest) returns (ApproveBookingResponse);
+  rpc  RejectBooking(RejectBookingRequest) returns (RejectBookingResponse);
   rpc  CancelBooking(CancelBookingRequest) returns (CancelBookingResponse);
   rpc  GetBooking(GetBookingRequest) returns (GetBookingResponse);
   rpc  ListUserBookings(ListUserBookingsRequest) returns (ListUserBookingsResponse);
+  rpc  ListDriverBookings(ListDriverBookingsRequest) returns (ListDriverBookingsResponse);
 }
 
 enum BookingStatus {
@@ -16,9 +19,11 @@ enum BookingStatus {
 }
 
 message CreateBookingRequest {
-  string userId = 1;
+  string rideId = 1;
   string passengerId = 2;
   int32 seatCount = 3;
+  optional int32 pickupStopOrder = 4;
+  optional int32 dropoffStopOrder = 5;
 }
 
 message CreateBookingResponse {
@@ -31,6 +36,24 @@ message CancelBookingRequest {
   string passengerId = 2;
 }
 
+message ApproveBookingRequest {
+  string bookingId = 1;
+  string driverId = 2;
+}
+
+message ApproveBookingResponse {
+  BookingStatus status = 1;
+}
+
+message RejectBookingRequest {
+  string bookingId = 1;
+  string driverId = 2;
+}
+
+message RejectBookingResponse {
+  BookingStatus status = 1;
+}
+
 message CancelBookingResponse {
   bool success = 1;
 }
@@ -41,10 +64,12 @@ message GetBookingRequest {
 
 message GetBookingResponse {
   string bookingId = 1;
-  string userId = 2;
+  string rideId = 2;
   string passengerId = 3;
   int32 seatCount = 4;
   BookingStatus status = 5;
+  optional int32 pickupStopOrder = 6;
+  optional int32 dropoffStopOrder = 7;
 }
 
 message ListUserBookingsRequest {
@@ -52,5 +77,13 @@ message ListUserBookingsRequest {
 }
 
 message ListUserBookingsResponse {
+  repeated GetBookingResponse bookings = 1;
+}
+
+message ListDriverBookingsRequest {
+  string driverId = 1;
+}
+
+message ListDriverBookingsResponse {
   repeated GetBookingResponse bookings = 1;
 }

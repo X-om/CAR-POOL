@@ -7,11 +7,20 @@
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 import {
-  type CallOptions, type ChannelCredentials, Client, type ClientOptions, type ClientUnaryCall, type handleUnaryCall,
-  makeGenericClientConstructor, type Metadata, type ServiceError, type UntypedServiceImplementation,
+  type CallOptions,
+  type ChannelCredentials,
+  Client,
+  type ClientOptions,
+  type ClientUnaryCall,
+  type handleUnaryCall,
+  makeGenericClientConstructor,
+  type Metadata,
+  type ServiceError,
+  type UntypedServiceImplementation,
 } from "@grpc/grpc-js";
 
 export const protobufPackage = "booking";
+
 export enum BookingStatus {
   PENDING = 0,
   CONFIRMED = 1,
@@ -58,9 +67,11 @@ export function bookingStatusToJSON(object: BookingStatus): string {
 }
 
 export interface CreateBookingRequest {
-  userId: string;
+  rideId: string;
   passengerId: string;
   seatCount: number;
+  pickupStopOrder?: number | undefined;
+  dropoffStopOrder?: number | undefined;
 }
 
 export interface CreateBookingResponse {
@@ -73,6 +84,24 @@ export interface CancelBookingRequest {
   passengerId: string;
 }
 
+export interface ApproveBookingRequest {
+  bookingId: string;
+  driverId: string;
+}
+
+export interface ApproveBookingResponse {
+  status: BookingStatus;
+}
+
+export interface RejectBookingRequest {
+  bookingId: string;
+  driverId: string;
+}
+
+export interface RejectBookingResponse {
+  status: BookingStatus;
+}
+
 export interface CancelBookingResponse {
   success: boolean;
 }
@@ -83,10 +112,12 @@ export interface GetBookingRequest {
 
 export interface GetBookingResponse {
   bookingId: string;
-  userId: string;
+  rideId: string;
   passengerId: string;
   seatCount: number;
   status: BookingStatus;
+  pickupStopOrder?: number | undefined;
+  dropoffStopOrder?: number | undefined;
 }
 
 export interface ListUserBookingsRequest {
@@ -97,20 +128,34 @@ export interface ListUserBookingsResponse {
   bookings: GetBookingResponse[];
 }
 
+export interface ListDriverBookingsRequest {
+  driverId: string;
+}
+
+export interface ListDriverBookingsResponse {
+  bookings: GetBookingResponse[];
+}
+
 function createBaseCreateBookingRequest(): CreateBookingRequest {
-  return { userId: "", passengerId: "", seatCount: 0 };
+  return { rideId: "", passengerId: "", seatCount: 0, pickupStopOrder: undefined, dropoffStopOrder: undefined };
 }
 
 export const CreateBookingRequest: MessageFns<CreateBookingRequest> = {
   encode(message: CreateBookingRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.userId !== "") {
-      writer.uint32(10).string(message.userId);
+    if (message.rideId !== "") {
+      writer.uint32(10).string(message.rideId);
     }
     if (message.passengerId !== "") {
       writer.uint32(18).string(message.passengerId);
     }
     if (message.seatCount !== 0) {
       writer.uint32(24).int32(message.seatCount);
+    }
+    if (message.pickupStopOrder !== undefined) {
+      writer.uint32(32).int32(message.pickupStopOrder);
+    }
+    if (message.dropoffStopOrder !== undefined) {
+      writer.uint32(40).int32(message.dropoffStopOrder);
     }
     return writer;
   },
@@ -127,7 +172,7 @@ export const CreateBookingRequest: MessageFns<CreateBookingRequest> = {
             break;
           }
 
-          message.userId = reader.string();
+          message.rideId = reader.string();
           continue;
         }
         case 2: {
@@ -146,6 +191,22 @@ export const CreateBookingRequest: MessageFns<CreateBookingRequest> = {
           message.seatCount = reader.int32();
           continue;
         }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.pickupStopOrder = reader.int32();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.dropoffStopOrder = reader.int32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -157,22 +218,30 @@ export const CreateBookingRequest: MessageFns<CreateBookingRequest> = {
 
   fromJSON(object: any): CreateBookingRequest {
     return {
-      userId: isSet(object.userId) ? globalThis.String(object.userId) : "",
+      rideId: isSet(object.rideId) ? globalThis.String(object.rideId) : "",
       passengerId: isSet(object.passengerId) ? globalThis.String(object.passengerId) : "",
       seatCount: isSet(object.seatCount) ? globalThis.Number(object.seatCount) : 0,
+      pickupStopOrder: isSet(object.pickupStopOrder) ? globalThis.Number(object.pickupStopOrder) : undefined,
+      dropoffStopOrder: isSet(object.dropoffStopOrder) ? globalThis.Number(object.dropoffStopOrder) : undefined,
     };
   },
 
   toJSON(message: CreateBookingRequest): unknown {
     const obj: any = {};
-    if (message.userId !== "") {
-      obj.userId = message.userId;
+    if (message.rideId !== "") {
+      obj.rideId = message.rideId;
     }
     if (message.passengerId !== "") {
       obj.passengerId = message.passengerId;
     }
     if (message.seatCount !== 0) {
       obj.seatCount = Math.round(message.seatCount);
+    }
+    if (message.pickupStopOrder !== undefined) {
+      obj.pickupStopOrder = Math.round(message.pickupStopOrder);
+    }
+    if (message.dropoffStopOrder !== undefined) {
+      obj.dropoffStopOrder = Math.round(message.dropoffStopOrder);
     }
     return obj;
   },
@@ -182,9 +251,11 @@ export const CreateBookingRequest: MessageFns<CreateBookingRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<CreateBookingRequest>, I>>(object: I): CreateBookingRequest {
     const message = createBaseCreateBookingRequest();
-    message.userId = object.userId ?? "";
+    message.rideId = object.rideId ?? "";
     message.passengerId = object.passengerId ?? "";
     message.seatCount = object.seatCount ?? 0;
+    message.pickupStopOrder = object.pickupStopOrder ?? undefined;
+    message.dropoffStopOrder = object.dropoffStopOrder ?? undefined;
     return message;
   },
 };
@@ -341,6 +412,274 @@ export const CancelBookingRequest: MessageFns<CancelBookingRequest> = {
   },
 };
 
+function createBaseApproveBookingRequest(): ApproveBookingRequest {
+  return { bookingId: "", driverId: "" };
+}
+
+export const ApproveBookingRequest: MessageFns<ApproveBookingRequest> = {
+  encode(message: ApproveBookingRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.bookingId !== "") {
+      writer.uint32(10).string(message.bookingId);
+    }
+    if (message.driverId !== "") {
+      writer.uint32(18).string(message.driverId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ApproveBookingRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseApproveBookingRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.bookingId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.driverId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ApproveBookingRequest {
+    return {
+      bookingId: isSet(object.bookingId) ? globalThis.String(object.bookingId) : "",
+      driverId: isSet(object.driverId) ? globalThis.String(object.driverId) : "",
+    };
+  },
+
+  toJSON(message: ApproveBookingRequest): unknown {
+    const obj: any = {};
+    if (message.bookingId !== "") {
+      obj.bookingId = message.bookingId;
+    }
+    if (message.driverId !== "") {
+      obj.driverId = message.driverId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ApproveBookingRequest>, I>>(base?: I): ApproveBookingRequest {
+    return ApproveBookingRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ApproveBookingRequest>, I>>(object: I): ApproveBookingRequest {
+    const message = createBaseApproveBookingRequest();
+    message.bookingId = object.bookingId ?? "";
+    message.driverId = object.driverId ?? "";
+    return message;
+  },
+};
+
+function createBaseApproveBookingResponse(): ApproveBookingResponse {
+  return { status: 0 };
+}
+
+export const ApproveBookingResponse: MessageFns<ApproveBookingResponse> = {
+  encode(message: ApproveBookingResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.status !== 0) {
+      writer.uint32(8).int32(message.status);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ApproveBookingResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseApproveBookingResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ApproveBookingResponse {
+    return { status: isSet(object.status) ? bookingStatusFromJSON(object.status) : 0 };
+  },
+
+  toJSON(message: ApproveBookingResponse): unknown {
+    const obj: any = {};
+    if (message.status !== 0) {
+      obj.status = bookingStatusToJSON(message.status);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ApproveBookingResponse>, I>>(base?: I): ApproveBookingResponse {
+    return ApproveBookingResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ApproveBookingResponse>, I>>(object: I): ApproveBookingResponse {
+    const message = createBaseApproveBookingResponse();
+    message.status = object.status ?? 0;
+    return message;
+  },
+};
+
+function createBaseRejectBookingRequest(): RejectBookingRequest {
+  return { bookingId: "", driverId: "" };
+}
+
+export const RejectBookingRequest: MessageFns<RejectBookingRequest> = {
+  encode(message: RejectBookingRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.bookingId !== "") {
+      writer.uint32(10).string(message.bookingId);
+    }
+    if (message.driverId !== "") {
+      writer.uint32(18).string(message.driverId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RejectBookingRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRejectBookingRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.bookingId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.driverId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RejectBookingRequest {
+    return {
+      bookingId: isSet(object.bookingId) ? globalThis.String(object.bookingId) : "",
+      driverId: isSet(object.driverId) ? globalThis.String(object.driverId) : "",
+    };
+  },
+
+  toJSON(message: RejectBookingRequest): unknown {
+    const obj: any = {};
+    if (message.bookingId !== "") {
+      obj.bookingId = message.bookingId;
+    }
+    if (message.driverId !== "") {
+      obj.driverId = message.driverId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RejectBookingRequest>, I>>(base?: I): RejectBookingRequest {
+    return RejectBookingRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RejectBookingRequest>, I>>(object: I): RejectBookingRequest {
+    const message = createBaseRejectBookingRequest();
+    message.bookingId = object.bookingId ?? "";
+    message.driverId = object.driverId ?? "";
+    return message;
+  },
+};
+
+function createBaseRejectBookingResponse(): RejectBookingResponse {
+  return { status: 0 };
+}
+
+export const RejectBookingResponse: MessageFns<RejectBookingResponse> = {
+  encode(message: RejectBookingResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.status !== 0) {
+      writer.uint32(8).int32(message.status);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RejectBookingResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRejectBookingResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RejectBookingResponse {
+    return { status: isSet(object.status) ? bookingStatusFromJSON(object.status) : 0 };
+  },
+
+  toJSON(message: RejectBookingResponse): unknown {
+    const obj: any = {};
+    if (message.status !== 0) {
+      obj.status = bookingStatusToJSON(message.status);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RejectBookingResponse>, I>>(base?: I): RejectBookingResponse {
+    return RejectBookingResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RejectBookingResponse>, I>>(object: I): RejectBookingResponse {
+    const message = createBaseRejectBookingResponse();
+    message.status = object.status ?? 0;
+    return message;
+  },
+};
+
 function createBaseCancelBookingResponse(): CancelBookingResponse {
   return { success: false };
 }
@@ -458,7 +797,15 @@ export const GetBookingRequest: MessageFns<GetBookingRequest> = {
 };
 
 function createBaseGetBookingResponse(): GetBookingResponse {
-  return { bookingId: "", userId: "", passengerId: "", seatCount: 0, status: 0 };
+  return {
+    bookingId: "",
+    rideId: "",
+    passengerId: "",
+    seatCount: 0,
+    status: 0,
+    pickupStopOrder: undefined,
+    dropoffStopOrder: undefined,
+  };
 }
 
 export const GetBookingResponse: MessageFns<GetBookingResponse> = {
@@ -466,8 +813,8 @@ export const GetBookingResponse: MessageFns<GetBookingResponse> = {
     if (message.bookingId !== "") {
       writer.uint32(10).string(message.bookingId);
     }
-    if (message.userId !== "") {
-      writer.uint32(18).string(message.userId);
+    if (message.rideId !== "") {
+      writer.uint32(18).string(message.rideId);
     }
     if (message.passengerId !== "") {
       writer.uint32(26).string(message.passengerId);
@@ -477,6 +824,12 @@ export const GetBookingResponse: MessageFns<GetBookingResponse> = {
     }
     if (message.status !== 0) {
       writer.uint32(40).int32(message.status);
+    }
+    if (message.pickupStopOrder !== undefined) {
+      writer.uint32(48).int32(message.pickupStopOrder);
+    }
+    if (message.dropoffStopOrder !== undefined) {
+      writer.uint32(56).int32(message.dropoffStopOrder);
     }
     return writer;
   },
@@ -501,7 +854,7 @@ export const GetBookingResponse: MessageFns<GetBookingResponse> = {
             break;
           }
 
-          message.userId = reader.string();
+          message.rideId = reader.string();
           continue;
         }
         case 3: {
@@ -528,6 +881,22 @@ export const GetBookingResponse: MessageFns<GetBookingResponse> = {
           message.status = reader.int32() as any;
           continue;
         }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.pickupStopOrder = reader.int32();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.dropoffStopOrder = reader.int32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -540,10 +909,12 @@ export const GetBookingResponse: MessageFns<GetBookingResponse> = {
   fromJSON(object: any): GetBookingResponse {
     return {
       bookingId: isSet(object.bookingId) ? globalThis.String(object.bookingId) : "",
-      userId: isSet(object.userId) ? globalThis.String(object.userId) : "",
+      rideId: isSet(object.rideId) ? globalThis.String(object.rideId) : "",
       passengerId: isSet(object.passengerId) ? globalThis.String(object.passengerId) : "",
       seatCount: isSet(object.seatCount) ? globalThis.Number(object.seatCount) : 0,
       status: isSet(object.status) ? bookingStatusFromJSON(object.status) : 0,
+      pickupStopOrder: isSet(object.pickupStopOrder) ? globalThis.Number(object.pickupStopOrder) : undefined,
+      dropoffStopOrder: isSet(object.dropoffStopOrder) ? globalThis.Number(object.dropoffStopOrder) : undefined,
     };
   },
 
@@ -552,8 +923,8 @@ export const GetBookingResponse: MessageFns<GetBookingResponse> = {
     if (message.bookingId !== "") {
       obj.bookingId = message.bookingId;
     }
-    if (message.userId !== "") {
-      obj.userId = message.userId;
+    if (message.rideId !== "") {
+      obj.rideId = message.rideId;
     }
     if (message.passengerId !== "") {
       obj.passengerId = message.passengerId;
@@ -564,6 +935,12 @@ export const GetBookingResponse: MessageFns<GetBookingResponse> = {
     if (message.status !== 0) {
       obj.status = bookingStatusToJSON(message.status);
     }
+    if (message.pickupStopOrder !== undefined) {
+      obj.pickupStopOrder = Math.round(message.pickupStopOrder);
+    }
+    if (message.dropoffStopOrder !== undefined) {
+      obj.dropoffStopOrder = Math.round(message.dropoffStopOrder);
+    }
     return obj;
   },
 
@@ -573,10 +950,12 @@ export const GetBookingResponse: MessageFns<GetBookingResponse> = {
   fromPartial<I extends Exact<DeepPartial<GetBookingResponse>, I>>(object: I): GetBookingResponse {
     const message = createBaseGetBookingResponse();
     message.bookingId = object.bookingId ?? "";
-    message.userId = object.userId ?? "";
+    message.rideId = object.rideId ?? "";
     message.passengerId = object.passengerId ?? "";
     message.seatCount = object.seatCount ?? 0;
     message.status = object.status ?? 0;
+    message.pickupStopOrder = object.pickupStopOrder ?? undefined;
+    message.dropoffStopOrder = object.dropoffStopOrder ?? undefined;
     return message;
   },
 };
@@ -701,6 +1080,126 @@ export const ListUserBookingsResponse: MessageFns<ListUserBookingsResponse> = {
   },
 };
 
+function createBaseListDriverBookingsRequest(): ListDriverBookingsRequest {
+  return { driverId: "" };
+}
+
+export const ListDriverBookingsRequest: MessageFns<ListDriverBookingsRequest> = {
+  encode(message: ListDriverBookingsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.driverId !== "") {
+      writer.uint32(10).string(message.driverId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListDriverBookingsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListDriverBookingsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.driverId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListDriverBookingsRequest {
+    return { driverId: isSet(object.driverId) ? globalThis.String(object.driverId) : "" };
+  },
+
+  toJSON(message: ListDriverBookingsRequest): unknown {
+    const obj: any = {};
+    if (message.driverId !== "") {
+      obj.driverId = message.driverId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListDriverBookingsRequest>, I>>(base?: I): ListDriverBookingsRequest {
+    return ListDriverBookingsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListDriverBookingsRequest>, I>>(object: I): ListDriverBookingsRequest {
+    const message = createBaseListDriverBookingsRequest();
+    message.driverId = object.driverId ?? "";
+    return message;
+  },
+};
+
+function createBaseListDriverBookingsResponse(): ListDriverBookingsResponse {
+  return { bookings: [] };
+}
+
+export const ListDriverBookingsResponse: MessageFns<ListDriverBookingsResponse> = {
+  encode(message: ListDriverBookingsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.bookings) {
+      GetBookingResponse.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListDriverBookingsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListDriverBookingsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.bookings.push(GetBookingResponse.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListDriverBookingsResponse {
+    return {
+      bookings: globalThis.Array.isArray(object?.bookings)
+        ? object.bookings.map((e: any) => GetBookingResponse.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ListDriverBookingsResponse): unknown {
+    const obj: any = {};
+    if (message.bookings?.length) {
+      obj.bookings = message.bookings.map((e) => GetBookingResponse.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListDriverBookingsResponse>, I>>(base?: I): ListDriverBookingsResponse {
+    return ListDriverBookingsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListDriverBookingsResponse>, I>>(object: I): ListDriverBookingsResponse {
+    const message = createBaseListDriverBookingsResponse();
+    message.bookings = object.bookings?.map((e) => GetBookingResponse.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 export type BookingServiceService = typeof BookingServiceService;
 export const BookingServiceService = {
   createBooking: {
@@ -712,6 +1211,27 @@ export const BookingServiceService = {
     responseSerialize: (value: CreateBookingResponse): Buffer =>
       Buffer.from(CreateBookingResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): CreateBookingResponse => CreateBookingResponse.decode(value),
+  },
+  approveBooking: {
+    path: "/booking.BookingService/ApproveBooking" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ApproveBookingRequest): Buffer =>
+      Buffer.from(ApproveBookingRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ApproveBookingRequest => ApproveBookingRequest.decode(value),
+    responseSerialize: (value: ApproveBookingResponse): Buffer =>
+      Buffer.from(ApproveBookingResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ApproveBookingResponse => ApproveBookingResponse.decode(value),
+  },
+  rejectBooking: {
+    path: "/booking.BookingService/RejectBooking" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: RejectBookingRequest): Buffer => Buffer.from(RejectBookingRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): RejectBookingRequest => RejectBookingRequest.decode(value),
+    responseSerialize: (value: RejectBookingResponse): Buffer =>
+      Buffer.from(RejectBookingResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RejectBookingResponse => RejectBookingResponse.decode(value),
   },
   cancelBooking: {
     path: "/booking.BookingService/CancelBooking" as const,
@@ -743,13 +1263,27 @@ export const BookingServiceService = {
       Buffer.from(ListUserBookingsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): ListUserBookingsResponse => ListUserBookingsResponse.decode(value),
   },
+  listDriverBookings: {
+    path: "/booking.BookingService/ListDriverBookings" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListDriverBookingsRequest): Buffer =>
+      Buffer.from(ListDriverBookingsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListDriverBookingsRequest => ListDriverBookingsRequest.decode(value),
+    responseSerialize: (value: ListDriverBookingsResponse): Buffer =>
+      Buffer.from(ListDriverBookingsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListDriverBookingsResponse => ListDriverBookingsResponse.decode(value),
+  },
 } as const;
 
 export interface BookingServiceServer extends UntypedServiceImplementation {
   createBooking: handleUnaryCall<CreateBookingRequest, CreateBookingResponse>;
+  approveBooking: handleUnaryCall<ApproveBookingRequest, ApproveBookingResponse>;
+  rejectBooking: handleUnaryCall<RejectBookingRequest, RejectBookingResponse>;
   cancelBooking: handleUnaryCall<CancelBookingRequest, CancelBookingResponse>;
   getBooking: handleUnaryCall<GetBookingRequest, GetBookingResponse>;
   listUserBookings: handleUnaryCall<ListUserBookingsRequest, ListUserBookingsResponse>;
+  listDriverBookings: handleUnaryCall<ListDriverBookingsRequest, ListDriverBookingsResponse>;
 }
 
 export interface BookingServiceClient extends Client {
@@ -768,6 +1302,36 @@ export interface BookingServiceClient extends Client {
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: CreateBookingResponse) => void,
   ): ClientUnaryCall;
+  approveBooking(
+    request: ApproveBookingRequest,
+    callback: (error: ServiceError | null, response: ApproveBookingResponse) => void,
+  ): ClientUnaryCall;
+  approveBooking(
+    request: ApproveBookingRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ApproveBookingResponse) => void,
+  ): ClientUnaryCall;
+  approveBooking(
+    request: ApproveBookingRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ApproveBookingResponse) => void,
+  ): ClientUnaryCall;
+  rejectBooking(
+    request: RejectBookingRequest,
+    callback: (error: ServiceError | null, response: RejectBookingResponse) => void,
+  ): ClientUnaryCall;
+  rejectBooking(
+    request: RejectBookingRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: RejectBookingResponse) => void,
+  ): ClientUnaryCall;
+  rejectBooking(
+    request: RejectBookingRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: RejectBookingResponse) => void,
+  ): ClientUnaryCall;
   cancelBooking(
     request: CancelBookingRequest,
     callback: (error: ServiceError | null, response: CancelBookingResponse) => void,
@@ -812,6 +1376,21 @@ export interface BookingServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ListUserBookingsResponse) => void,
+  ): ClientUnaryCall;
+  listDriverBookings(
+    request: ListDriverBookingsRequest,
+    callback: (error: ServiceError | null, response: ListDriverBookingsResponse) => void,
+  ): ClientUnaryCall;
+  listDriverBookings(
+    request: ListDriverBookingsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListDriverBookingsResponse) => void,
+  ): ClientUnaryCall;
+  listDriverBookings(
+    request: ListDriverBookingsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListDriverBookingsResponse) => void,
   ): ClientUnaryCall;
 }
 
@@ -819,7 +1398,7 @@ export const BookingServiceClient = makeGenericClientConstructor(
   BookingServiceService,
   "booking.BookingService",
 ) as unknown as {
-  new(address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): BookingServiceClient;
+  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): BookingServiceClient;
   service: typeof BookingServiceService;
   serviceName: string;
 };

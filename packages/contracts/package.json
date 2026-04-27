@@ -1,0 +1,26 @@
+{
+  "name": "@repo/contracts",
+  "version": "1.0.0",
+  "description": "Shared runtime-validated contracts (REST DTOs + Kafka events) with strict TypeScript types",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "check-types": "tsc -b --pretty false --noEmit"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*"
+  },
+  "dependencies": {
+    "zod": "^4.3.6"
+  }
+}

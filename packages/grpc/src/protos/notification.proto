@@ -16,6 +16,14 @@ message Notification {
   string message = 3;
   int64 timestamp = 4; // Unix timestamp
   bool isRead = 5;
+
+  string type = 6;
+  string title = 7;
+  string topic = 8;
+  string eventType = 9;
+  string aggregateId = 10;
+  string occurredAt = 11;
+  string payloadJson = 12;
 }
 
 message GetUserNotificationsResponse {

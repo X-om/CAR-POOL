@@ -5,6 +5,8 @@ SELECT
   email,
   is_driver,
   is_verified,
+  is_phone_verified,
+  is_email_verified,
   created_at,
   updated_at
 FROM users 

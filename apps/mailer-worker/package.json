@@ -1,0 +1,28 @@
+{
+  "name": "mailer-worker",
+  "version": "1.0.0",
+  "description": "Kafka consumer that sends transactional emails",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx watch src/worker.ts",
+    "build": "tsc -b",
+    "check-types": "tsc -b --pretty false --noEmit",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.15.3",
+    "@types/nodemailer": "^6.4.18",
+    "tsx": "^4.20.5"
+  },
+  "dependencies": {
+    "@repo/kafka": "workspace:*",
+    "@repo/mailer": "workspace:*",
+    "dotenv": "^16.6.1",
+    "nodemailer": "^6.10.1",
+    "zod": "^4.3.6"
+  }
+}

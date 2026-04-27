@@ -24,9 +24,27 @@ message RideInfo {
   string sourceCity = 4;
   string destinationCity = 5;
   int64 departureTime = 6; // Unix timestamp
-  double pricePerSeat = 7;
-  int32 availableSeats = 8;
-  double driverRating = 9;
+  // Driver-set price for the full ride (source->destination)
+  double driverPricePerSeat = 7;
+
+  // Computed by the system for the requested leg (pickup->dropoff)
+  double estimatedPricePerSeat = 8;
+  int32 availableSeats = 9;
+
+  // The matched stops for pickup/dropoff along the ride route.
+  int32 pickupStopOrder = 10;
+  int32 dropoffStopOrder = 11;
+
+  repeated RouteStop routeStops = 12;
+
+  double driverRating = 13;
+}
+
+message RouteStop {
+  int32 stopOrder = 1;
+  string cityName = 2;
+  double latitude = 3;
+  double longitude = 4;
 }
 
 message SearchRidesResponse {
@@ -44,8 +62,9 @@ message GetRideSearchDataResponse {
   string sourceCity = 4;
   string destinationCity = 5;
   int64 departureTime = 6; // Unix timestamp
-  double pricePerSeat = 7;
+  double driverPricePerSeat = 7;
   int32 availableSeats = 8;
-  double driverRating = 9;
+  repeated RouteStop routeStops = 9;
+  double driverRating = 10;
 }
 

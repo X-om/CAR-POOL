@@ -11,6 +11,8 @@ export interface IIUserResult {
   id: string;
   is_driver: boolean | null;
   is_verified: boolean | null;
+  is_phone_verified: boolean | null;
+  is_email_verified: boolean | null;
   phone_number: string;
   updated_at: Date | null;
 }
@@ -21,7 +23,7 @@ export interface IIUserQuery {
   result: IIUserResult;
 }
 
-const iUserIR: any = {"usedParamSet":{},"params":[],"statement":"SELECT \n  id,\n  phone_number,\n  email,\n  is_driver,\n  is_verified,\n  created_at,\n  updated_at\nFROM users \nLIMIT 1"};
+const iUserIR: any = { "usedParamSet": {}, "params": [], "statement": "SELECT \n  id,\n  phone_number,\n  email,\n  is_driver,\n  is_verified,\n  is_phone_verified,\n  is_email_verified,\n  created_at,\n  updated_at\nFROM users \nLIMIT 1" };
 
 /**
  * Query generated from SQL:
@@ -32,13 +34,15 @@ const iUserIR: any = {"usedParamSet":{},"params":[],"statement":"SELECT \n  id,\
  *   email,
  *   is_driver,
  *   is_verified,
+ *   is_phone_verified,
+ *   is_email_verified,
  *   created_at,
  *   updated_at
  * FROM users 
  * LIMIT 1
  * ```
  */
-export const iUser = new PreparedQuery<IIUserParams,IIUserResult>(iUserIR);
+export const iUser = new PreparedQuery<IIUserParams, IIUserResult>(iUserIR);
 
 
 /** 'IUserProfile' parameters type */
@@ -60,7 +64,7 @@ export interface IIUserProfileQuery {
   result: IIUserProfileResult;
 }
 
-const iUserProfileIR: any = {"usedParamSet":{},"params":[],"statement":"SELECT  \n  user_id,\n  first_name,\n  last_name,\n  profile_picture_url,\n  bio,\n  city\nFROM user_profiles\nLIMIT 1"};
+const iUserProfileIR: any = { "usedParamSet": {}, "params": [], "statement": "SELECT  \n  user_id,\n  first_name,\n  last_name,\n  profile_picture_url,\n  bio,\n  city\nFROM user_profiles\nLIMIT 1" };
 
 /**
  * Query generated from SQL:
@@ -76,7 +80,7 @@ const iUserProfileIR: any = {"usedParamSet":{},"params":[],"statement":"SELECT  
  * LIMIT 1
  * ```
  */
-export const iUserProfile = new PreparedQuery<IIUserProfileParams,IIUserProfileResult>(iUserProfileIR);
+export const iUserProfile = new PreparedQuery<IIUserProfileParams, IIUserProfileResult>(iUserProfileIR);
 
 
 /** 'IUserAuth' parameters type */
@@ -96,7 +100,7 @@ export interface IIUserAuthQuery {
   result: IIUserAuthResult;
 }
 
-const iUserAuthIR: any = {"usedParamSet":{},"params":[],"statement":"SELECT\n  user_id,\n  otp_code,\n  otp_expiry,\n  last_login\nFROM user_auth\nLIMIT 1"};
+const iUserAuthIR: any = { "usedParamSet": {}, "params": [], "statement": "SELECT\n  user_id,\n  otp_code,\n  otp_expiry,\n  last_login\nFROM user_auth\nLIMIT 1" };
 
 /**
  * Query generated from SQL:
@@ -110,7 +114,7 @@ const iUserAuthIR: any = {"usedParamSet":{},"params":[],"statement":"SELECT\n  u
  * LIMIT 1
  * ```
  */
-export const iUserAuth = new PreparedQuery<IIUserAuthParams,IIUserAuthResult>(iUserAuthIR);
+export const iUserAuth = new PreparedQuery<IIUserAuthParams, IIUserAuthResult>(iUserAuthIR);
 
 
 /** 'IUserRatingSummary' parameters type */
@@ -130,7 +134,7 @@ export interface IIUserRatingSummaryQuery {
   result: IIUserRatingSummaryResult;
 }
 
-const iUserRatingSummaryIR: any = {"usedParamSet":{},"params":[],"statement":"SELECT\n  user_id,\n  average_rating,\n  total_reviews,\n  total_rides\nFROM user_rating_summary\nLIMIT 1"};
+const iUserRatingSummaryIR: any = { "usedParamSet": {}, "params": [], "statement": "SELECT\n  user_id,\n  average_rating,\n  total_reviews,\n  total_rides\nFROM user_rating_summary\nLIMIT 1" };
 
 /**
  * Query generated from SQL:
@@ -144,6 +148,6 @@ const iUserRatingSummaryIR: any = {"usedParamSet":{},"params":[],"statement":"SE
  * LIMIT 1
  * ```
  */
-export const iUserRatingSummary = new PreparedQuery<IIUserRatingSummaryParams,IIUserRatingSummaryResult>(iUserRatingSummaryIR);
+export const iUserRatingSummary = new PreparedQuery<IIUserRatingSummaryParams, IIUserRatingSummaryResult>(iUserRatingSummaryIR);
 
 

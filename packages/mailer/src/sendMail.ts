@@ -1,0 +1,60 @@
+import { randomUUID } from "node:crypto";
+import { createKafkaClient } from "@repo/kafka";
+import { createAndConnectProducer } from "@repo/kafka";
+import type { Producer } from "kafkajs";
+import { EMAIL_JOBS_TOPIC, type EmailJob, type EmailTemplateId, type EmailTemplateVariables } from "./types";
+
+let producerSingleton: Promise<Producer> | null = null;
+
+function getBrokersFromEnv(): string[] {
+  const raw = process.env.KAFKA_BROKERS ?? "127.0.0.1:9092";
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+async function getProducer(): Promise<Producer> {
+  if (!producerSingleton) {
+    const kafka = createKafkaClient({
+      clientId: process.env.KAFKA_CLIENT_ID ?? "mailer-producer",
+      brokers: getBrokersFromEnv(),
+    });
+    producerSingleton = createAndConnectProducer({ kafka }).catch((err) => {
+      // If the initial connect fails (e.g. Kafka not up yet), allow future calls to retry.
+      producerSingleton = null;
+      throw err;
+    });
+  }
+  return producerSingleton;
+}
+
+export async function sendMail<TTemplateId extends EmailTemplateId>(input: {
+  from: string;
+  to: string;
+  templateId: TTemplateId;
+  templateVariables: EmailTemplateVariables[TTemplateId];
+  jobId?: string;
+}): Promise<EmailJob<TTemplateId>> {
+  const job: EmailJob<TTemplateId> = {
+    jobId: input.jobId ?? randomUUID(),
+    createdAt: new Date().toISOString(),
+    from: input.from,
+    to: input.to,
+    templateId: input.templateId,
+    templateVariables: input.templateVariables,
+  };
+
+  const producer = await getProducer();
+  await producer.send({
+    topic: EMAIL_JOBS_TOPIC,
+    messages: [
+      {
+        key: job.jobId,
+        value: JSON.stringify(job),
+      },
+    ],
+  });
+
+  return job;
+}

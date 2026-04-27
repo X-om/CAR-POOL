@@ -31,12 +31,31 @@ export interface RegisterUserResponse {
   otpSend: string;
 }
 
+export interface RequestEmailOTPRequest {
+  userId: string;
+  email: string;
+}
+
+export interface RequestEmailOTPResponse {
+  userId: string;
+  otpSend: string;
+}
+
 export interface VerifyOTPRequest {
   phoneNumber: string;
   otp: string;
 }
 
 export interface VerifyOTPResponse {
+  userId: string;
+  token: string;
+}
+
+export interface ExchangeFirebaseIdTokenRequest {
+  idToken: string;
+}
+
+export interface ExchangeFirebaseIdTokenResponse {
   userId: string;
   token: string;
 }
@@ -51,6 +70,8 @@ export interface GetUserResponse {
   email: string;
   isVerified: boolean;
   isDriver: boolean;
+  isPhoneVerified: boolean;
+  isEmailVerified: boolean;
 }
 
 export interface GetUserProfileRequest {
@@ -256,6 +277,158 @@ export const RegisterUserResponse: MessageFns<RegisterUserResponse> = {
   },
 };
 
+function createBaseRequestEmailOTPRequest(): RequestEmailOTPRequest {
+  return { userId: "", email: "" };
+}
+
+export const RequestEmailOTPRequest: MessageFns<RequestEmailOTPRequest> = {
+  encode(message: RequestEmailOTPRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.email !== "") {
+      writer.uint32(18).string(message.email);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RequestEmailOTPRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRequestEmailOTPRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.email = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RequestEmailOTPRequest {
+    return {
+      userId: isSet(object.userId) ? globalThis.String(object.userId) : "",
+      email: isSet(object.email) ? globalThis.String(object.email) : "",
+    };
+  },
+
+  toJSON(message: RequestEmailOTPRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== "") {
+      obj.userId = message.userId;
+    }
+    if (message.email !== "") {
+      obj.email = message.email;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RequestEmailOTPRequest>, I>>(base?: I): RequestEmailOTPRequest {
+    return RequestEmailOTPRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RequestEmailOTPRequest>, I>>(object: I): RequestEmailOTPRequest {
+    const message = createBaseRequestEmailOTPRequest();
+    message.userId = object.userId ?? "";
+    message.email = object.email ?? "";
+    return message;
+  },
+};
+
+function createBaseRequestEmailOTPResponse(): RequestEmailOTPResponse {
+  return { userId: "", otpSend: "" };
+}
+
+export const RequestEmailOTPResponse: MessageFns<RequestEmailOTPResponse> = {
+  encode(message: RequestEmailOTPResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.otpSend !== "") {
+      writer.uint32(18).string(message.otpSend);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RequestEmailOTPResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRequestEmailOTPResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.otpSend = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RequestEmailOTPResponse {
+    return {
+      userId: isSet(object.userId) ? globalThis.String(object.userId) : "",
+      otpSend: isSet(object.otpSend) ? globalThis.String(object.otpSend) : "",
+    };
+  },
+
+  toJSON(message: RequestEmailOTPResponse): unknown {
+    const obj: any = {};
+    if (message.userId !== "") {
+      obj.userId = message.userId;
+    }
+    if (message.otpSend !== "") {
+      obj.otpSend = message.otpSend;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RequestEmailOTPResponse>, I>>(base?: I): RequestEmailOTPResponse {
+    return RequestEmailOTPResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RequestEmailOTPResponse>, I>>(object: I): RequestEmailOTPResponse {
+    const message = createBaseRequestEmailOTPResponse();
+    message.userId = object.userId ?? "";
+    message.otpSend = object.otpSend ?? "";
+    return message;
+  },
+};
+
 function createBaseVerifyOTPRequest(): VerifyOTPRequest {
   return { phoneNumber: "", otp: "" };
 }
@@ -408,6 +581,144 @@ export const VerifyOTPResponse: MessageFns<VerifyOTPResponse> = {
   },
 };
 
+function createBaseExchangeFirebaseIdTokenRequest(): ExchangeFirebaseIdTokenRequest {
+  return { idToken: "" };
+}
+
+export const ExchangeFirebaseIdTokenRequest: MessageFns<ExchangeFirebaseIdTokenRequest> = {
+  encode(message: ExchangeFirebaseIdTokenRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.idToken !== "") {
+      writer.uint32(10).string(message.idToken);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ExchangeFirebaseIdTokenRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseExchangeFirebaseIdTokenRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.idToken = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ExchangeFirebaseIdTokenRequest {
+    return { idToken: isSet(object.idToken) ? globalThis.String(object.idToken) : "" };
+  },
+
+  toJSON(message: ExchangeFirebaseIdTokenRequest): unknown {
+    const obj: any = {};
+    if (message.idToken !== "") {
+      obj.idToken = message.idToken;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ExchangeFirebaseIdTokenRequest>, I>>(base?: I): ExchangeFirebaseIdTokenRequest {
+    return ExchangeFirebaseIdTokenRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ExchangeFirebaseIdTokenRequest>, I>>(
+    object: I,
+  ): ExchangeFirebaseIdTokenRequest {
+    const message = createBaseExchangeFirebaseIdTokenRequest();
+    message.idToken = object.idToken ?? "";
+    return message;
+  },
+};
+
+function createBaseExchangeFirebaseIdTokenResponse(): ExchangeFirebaseIdTokenResponse {
+  return { userId: "", token: "" };
+}
+
+export const ExchangeFirebaseIdTokenResponse: MessageFns<ExchangeFirebaseIdTokenResponse> = {
+  encode(message: ExchangeFirebaseIdTokenResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.token !== "") {
+      writer.uint32(18).string(message.token);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ExchangeFirebaseIdTokenResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseExchangeFirebaseIdTokenResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.token = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ExchangeFirebaseIdTokenResponse {
+    return {
+      userId: isSet(object.userId) ? globalThis.String(object.userId) : "",
+      token: isSet(object.token) ? globalThis.String(object.token) : "",
+    };
+  },
+
+  toJSON(message: ExchangeFirebaseIdTokenResponse): unknown {
+    const obj: any = {};
+    if (message.userId !== "") {
+      obj.userId = message.userId;
+    }
+    if (message.token !== "") {
+      obj.token = message.token;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ExchangeFirebaseIdTokenResponse>, I>>(base?: I): ExchangeFirebaseIdTokenResponse {
+    return ExchangeFirebaseIdTokenResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ExchangeFirebaseIdTokenResponse>, I>>(
+    object: I,
+  ): ExchangeFirebaseIdTokenResponse {
+    const message = createBaseExchangeFirebaseIdTokenResponse();
+    message.userId = object.userId ?? "";
+    message.token = object.token ?? "";
+    return message;
+  },
+};
+
 function createBaseGetUserRequest(): GetUserRequest {
   return { userId: "" };
 }
@@ -467,7 +778,15 @@ export const GetUserRequest: MessageFns<GetUserRequest> = {
 };
 
 function createBaseGetUserResponse(): GetUserResponse {
-  return { userId: "", phoneNumber: "", email: "", isVerified: false, isDriver: false };
+  return {
+    userId: "",
+    phoneNumber: "",
+    email: "",
+    isVerified: false,
+    isDriver: false,
+    isPhoneVerified: false,
+    isEmailVerified: false,
+  };
 }
 
 export const GetUserResponse: MessageFns<GetUserResponse> = {
@@ -486,6 +805,12 @@ export const GetUserResponse: MessageFns<GetUserResponse> = {
     }
     if (message.isDriver !== false) {
       writer.uint32(40).bool(message.isDriver);
+    }
+    if (message.isPhoneVerified !== false) {
+      writer.uint32(48).bool(message.isPhoneVerified);
+    }
+    if (message.isEmailVerified !== false) {
+      writer.uint32(56).bool(message.isEmailVerified);
     }
     return writer;
   },
@@ -537,6 +862,22 @@ export const GetUserResponse: MessageFns<GetUserResponse> = {
           message.isDriver = reader.bool();
           continue;
         }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.isPhoneVerified = reader.bool();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.isEmailVerified = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -553,6 +894,8 @@ export const GetUserResponse: MessageFns<GetUserResponse> = {
       email: isSet(object.email) ? globalThis.String(object.email) : "",
       isVerified: isSet(object.isVerified) ? globalThis.Boolean(object.isVerified) : false,
       isDriver: isSet(object.isDriver) ? globalThis.Boolean(object.isDriver) : false,
+      isPhoneVerified: isSet(object.isPhoneVerified) ? globalThis.Boolean(object.isPhoneVerified) : false,
+      isEmailVerified: isSet(object.isEmailVerified) ? globalThis.Boolean(object.isEmailVerified) : false,
     };
   },
 
@@ -573,6 +916,12 @@ export const GetUserResponse: MessageFns<GetUserResponse> = {
     if (message.isDriver !== false) {
       obj.isDriver = message.isDriver;
     }
+    if (message.isPhoneVerified !== false) {
+      obj.isPhoneVerified = message.isPhoneVerified;
+    }
+    if (message.isEmailVerified !== false) {
+      obj.isEmailVerified = message.isEmailVerified;
+    }
     return obj;
   },
 
@@ -586,6 +935,8 @@ export const GetUserResponse: MessageFns<GetUserResponse> = {
     message.email = object.email ?? "";
     message.isVerified = object.isVerified ?? false;
     message.isDriver = object.isDriver ?? false;
+    message.isPhoneVerified = object.isPhoneVerified ?? false;
+    message.isEmailVerified = object.isEmailVerified ?? false;
     return message;
   },
 };
@@ -1385,6 +1736,29 @@ export const UserServiceService = {
     responseSerialize: (value: VerifyOTPResponse): Buffer => Buffer.from(VerifyOTPResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): VerifyOTPResponse => VerifyOTPResponse.decode(value),
   },
+  requestEmailOtp: {
+    path: "/user.UserService/RequestEmailOTP" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: RequestEmailOTPRequest): Buffer =>
+      Buffer.from(RequestEmailOTPRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): RequestEmailOTPRequest => RequestEmailOTPRequest.decode(value),
+    responseSerialize: (value: RequestEmailOTPResponse): Buffer =>
+      Buffer.from(RequestEmailOTPResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RequestEmailOTPResponse => RequestEmailOTPResponse.decode(value),
+  },
+  exchangeFirebaseIdToken: {
+    path: "/user.UserService/ExchangeFirebaseIdToken" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ExchangeFirebaseIdTokenRequest): Buffer =>
+      Buffer.from(ExchangeFirebaseIdTokenRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ExchangeFirebaseIdTokenRequest => ExchangeFirebaseIdTokenRequest.decode(value),
+    responseSerialize: (value: ExchangeFirebaseIdTokenResponse): Buffer =>
+      Buffer.from(ExchangeFirebaseIdTokenResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ExchangeFirebaseIdTokenResponse =>
+      ExchangeFirebaseIdTokenResponse.decode(value),
+  },
   getUser: {
     path: "/user.UserService/GetUser" as const,
     requestStream: false as const,
@@ -1454,6 +1828,8 @@ export const UserServiceService = {
 export interface UserServiceServer extends UntypedServiceImplementation {
   registerUser: handleUnaryCall<RegisterUserRequest, RegisterUserResponse>;
   verifyOtp: handleUnaryCall<VerifyOTPRequest, VerifyOTPResponse>;
+  requestEmailOtp: handleUnaryCall<RequestEmailOTPRequest, RequestEmailOTPResponse>;
+  exchangeFirebaseIdToken: handleUnaryCall<ExchangeFirebaseIdTokenRequest, ExchangeFirebaseIdTokenResponse>;
   getUser: handleUnaryCall<GetUserRequest, GetUserResponse>;
   getUserProfile: handleUnaryCall<GetUserProfileRequest, GetUserProfileResponse>;
   updateUserProfile: handleUnaryCall<UpdateUserProfileRequest, UpdateUserProfileResponse>;
@@ -1492,6 +1868,36 @@ export interface UserServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: VerifyOTPResponse) => void,
+  ): ClientUnaryCall;
+  requestEmailOtp(
+    request: RequestEmailOTPRequest,
+    callback: (error: ServiceError | null, response: RequestEmailOTPResponse) => void,
+  ): ClientUnaryCall;
+  requestEmailOtp(
+    request: RequestEmailOTPRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: RequestEmailOTPResponse) => void,
+  ): ClientUnaryCall;
+  requestEmailOtp(
+    request: RequestEmailOTPRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: RequestEmailOTPResponse) => void,
+  ): ClientUnaryCall;
+  exchangeFirebaseIdToken(
+    request: ExchangeFirebaseIdTokenRequest,
+    callback: (error: ServiceError | null, response: ExchangeFirebaseIdTokenResponse) => void,
+  ): ClientUnaryCall;
+  exchangeFirebaseIdToken(
+    request: ExchangeFirebaseIdTokenRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ExchangeFirebaseIdTokenResponse) => void,
+  ): ClientUnaryCall;
+  exchangeFirebaseIdToken(
+    request: ExchangeFirebaseIdTokenRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ExchangeFirebaseIdTokenResponse) => void,
   ): ClientUnaryCall;
   getUser(
     request: GetUserRequest,
