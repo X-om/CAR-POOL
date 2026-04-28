@@ -22,3 +22,18 @@ export async function getUserEmail(userId: string): Promise<string | null> {
     });
   });
 }
+
+export async function updateUserRating(userId: string, newRating: number): Promise<void> {
+  const client = createUserServiceClient();
+  return await new Promise<void>((resolve, reject) => {
+    const md = createInternalAuthMetadata({
+      internalJwtSecret: INTERNAL_JWT_SECRET,
+      callerService: 'trip-service',
+      requestId: randomUUID(),
+    });
+    client.updateUserRating({ userId, newRating }, md, (err) => {
+      if (err) return reject(err);
+      resolve();
+    });
+  });
+}

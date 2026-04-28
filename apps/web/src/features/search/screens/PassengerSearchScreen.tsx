@@ -114,38 +114,48 @@ function bbox(coords: Array<[number, number]>) {
 }
 
 function useThemeMapColors() {
-  const [colors, setColors] = React.useState<{ primary: string; muted: string } | null>(
-    null
-  );
+  const [colors, setColors] = React.useState<
+    { primary: string; muted: string; route: string } | null
+  >(null);
 
   React.useEffect(() => {
     const s = getComputedStyle(document.documentElement);
+    const rawPrimary = s.getPropertyValue("--primary").trim() || "hsl(222.2 47.4% 11.2%)";
+    const rawMuted = s.getPropertyValue("--muted-foreground").trim() || "hsl(215.4 16.3% 46.9%)";
 
-    const normalize = (raw: string, fallback: string) => {
-      const value = raw.trim();
-      if (!value) return fallback;
-      if (
-        value.startsWith("hsl(") ||
-        value.startsWith("hsla(") ||
-        value.startsWith("rgb(") ||
-        value.startsWith("rgba(") ||
-        value.startsWith("#")
-      ) {
-        return value;
+    const probe = document.createElement("span");
+    probe.className = "text-blue-600";
+    probe.style.position = "absolute";
+    probe.style.visibility = "hidden";
+    probe.style.pointerEvents = "none";
+    document.body.appendChild(probe);
+    const rawRoute = getComputedStyle(probe).color || "rgb(37, 99, 235)";
+    document.body.removeChild(probe);
+
+    function normalizeCssColor(raw: string, fallback: string) {
+      const v = (raw || "").trim();
+      if (!v) return fallback;
+      try {
+        const el = document.createElement("div");
+        el.style.position = "absolute";
+        el.style.visibility = "hidden";
+        el.style.pointerEvents = "none";
+        el.style.color = v;
+        document.body.appendChild(el);
+        const resolved = getComputedStyle(el).color || fallback;
+        document.body.removeChild(el);
+        if (/^\s*lab\(/i.test(resolved) || /^\s*lch\(/i.test(resolved)) return fallback;
+        return resolved;
+      } catch {
+        return fallback;
       }
-      return `hsl(${value})`;
-    };
+    }
 
-    const primary = normalize(
-      s.getPropertyValue("--primary"),
-      "hsl(222.2 47.4% 11.2%)"
-    );
-    const muted = normalize(
-      s.getPropertyValue("--muted-foreground"),
-      "hsl(215.4 16.3% 46.9%)"
-    );
+    const primary = normalizeCssColor(rawPrimary, "hsl(222.2 47.4% 11.2%)");
+    const muted = normalizeCssColor(rawMuted, "hsl(215.4 16.3% 46.9%)");
+    const route = normalizeCssColor(rawRoute, "rgb(37, 99, 235)");
 
-    setColors({ primary, muted });
+    setColors({ primary, muted, route });
   }, []);
 
   return colors;
@@ -200,8 +210,7 @@ export function PassengerSearchScreen() {
   const rides = React.useMemo(() => ridesQuery.data?.rides ?? [], [ridesQuery.data?.rides]);
 
   const canUseMapbox = Boolean(env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN);
-  const primary = themeColors?.primary ?? "hsl(222.2 47.4% 11.2%)";
-  const muted = themeColors?.muted ?? "hsl(215.4 16.3% 46.9%)";
+  const routeBlue = themeColors?.route ?? "rgb(37, 99, 235)";
 
   const originSuggestions = useCitySuggestions(originQuery, canUseMapbox && originOpen);
   const destinationSuggestions = useCitySuggestions(
@@ -460,7 +469,7 @@ export function PassengerSearchScreen() {
                       id="search-routes-layer"
                       type="line"
                       paint={{
-                        "line-color": muted,
+                        "line-color": routeBlue,
                         "line-width": 3,
                         "line-opacity": 0.35,
                       }}
@@ -474,7 +483,7 @@ export function PassengerSearchScreen() {
                       id="search-legs-layer"
                       type="line"
                       paint={{
-                        "line-color": primary,
+                        "line-color": routeBlue,
                         "line-width": 5,
                         "line-opacity": 0.85,
                       }}

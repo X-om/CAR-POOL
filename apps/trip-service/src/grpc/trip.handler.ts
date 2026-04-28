@@ -21,4 +21,6 @@ export const tripHandler: trip.TripServiceServer = {
   completeTrip: unary(tripService.completeTrip),
   getTrip: unary(tripService.getTrip),
   listDriverTrips: unary(tripService.listDriverTrips),
+  submitRating: unary(tripService.submitRating),
+  getPassengerTrip: unary(tripService.getPassengerTrip),
 };

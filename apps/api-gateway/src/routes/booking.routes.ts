@@ -102,6 +102,20 @@ bookingRouter.get('/driver', async (req, res, next) => {
   }
 });
 
+bookingRouter.get('/ride/:rideId', async (req, res, next) => {
+  try {
+    const Params = z.object({ rideId: z.string().min(1) });
+    const { rideId } = Params.parse(req.params);
+    const client = createBookingServiceClient();
+    (client as any).listRideBookings({ rideId }, internalGrpcMetadata(req), (err: any, response: any) => {
+      if (err) return next(err);
+      return res.json({ success: true, data: response, error: null });
+    });
+  } catch (err) {
+    next(err as Error);
+  }
+});
+
 bookingRouter.get('/:bookingId', async (req, res, next) => {
   try {
     const Params = z.object({ bookingId: z.string().min(1) });

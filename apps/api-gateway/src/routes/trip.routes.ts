@@ -60,6 +60,39 @@ tripRouter.post('/:tripId/complete', requireVerifiedUser, async (req, res, next)
   }
 });
 
+tripRouter.post('/:tripId/rate', requireVerifiedUser, async (req, res, next) => {
+  try {
+    const Params = z.object({ tripId: z.string().min(1) });
+    const { tripId } = Params.parse(req.params);
+    const Body = z.object({ rating: z.coerce.number().int().min(1).max(5) });
+    const body = Body.parse(req.body);
+    const client = createTripServiceClient();
+    // determine passengerId from auth
+    const u = (req.user as any) || {};
+    const passengerId = String(u.sub ?? '');
+    (client as any).submitRating({ tripId, passengerId, rating: body.rating }, internalGrpcMetadata(req), (err: any, response: any) => {
+      if (err) return next(err);
+      return res.json({ success: true, data: response, error: null });
+    });
+  } catch (err) {
+    next(err as Error);
+  }
+});
+
+tripRouter.get('/ride/:rideId/passenger/:passengerId', requireVerifiedUser, async (req, res, next) => {
+  try {
+    const Params = z.object({ rideId: z.string().min(1), passengerId: z.string().min(1) });
+    const { rideId, passengerId } = Params.parse(req.params);
+    const client = createTripServiceClient();
+    (client as any).getPassengerTrip({ rideId, passengerId }, internalGrpcMetadata(req), (err: any, response: any) => {
+      if (err) return next(err);
+      return res.json({ success: true, data: response, error: null });
+    });
+  } catch (err) {
+    next(err as Error);
+  }
+});
+
 tripRouter.get('/:tripId', async (req, res, next) => {
   try {
     const Params = z.object({ tripId: z.string().min(1) });

@@ -17,7 +17,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { listDriverBookings } from "@/features/bookings/api/bookingsApi";
+import {
+  approveBooking,
+  listDriverBookings,
+  rejectBooking,
+} from "@/features/bookings/api/bookingsApi";
 import { cancelRide, listDriverRides } from "@/features/rides/api/ridesApi";
 import { listDriverTrips, startTrip } from "@/features/trips/api/tripsApi";
 import { formatDateTime } from "@/lib/format/date";
@@ -47,6 +51,32 @@ export function DriverRidesScreen() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.rides });
       toast.success("Ride cancelled");
+    },
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (bookingId: string) => approveBooking(bookingId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["driverBookings"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
+      toast.success("Booking approved");
+    },
+    onError: (e) => {
+      const message = e instanceof Error ? e.message : "Failed to approve booking";
+      toast.error(message);
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (bookingId: string) => rejectBooking(bookingId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["driverBookings"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
+      toast.success("Booking rejected");
+    },
+    onError: (e) => {
+      const message = e instanceof Error ? e.message : "Failed to reject booking";
+      toast.error(message);
     },
   });
 
@@ -84,6 +114,34 @@ export function DriverRidesScreen() {
       if (b.status !== 1) continue;
       m.set(b.rideId, (m.get(b.rideId) ?? 0) + 1);
     }
+    return m;
+  }, [driverBookingsQuery.data?.bookings]);
+
+  const pendingBookingsByRideId = React.useMemo(() => {
+    const bookings = driverBookingsQuery.data?.bookings ?? [];
+    const m = new Map<
+      string,
+      Array<{
+        bookingId: string;
+        rideId: string;
+        passengerId: string;
+        seatCount: number;
+      }>
+    >();
+
+    for (const b of bookings) {
+      // BookingStatus.PENDING = 0
+      if (b.status !== 0) continue;
+      const list = m.get(b.rideId) ?? [];
+      list.push({
+        bookingId: b.bookingId,
+        rideId: b.rideId,
+        passengerId: b.passengerId,
+        seatCount: b.seatCount,
+      });
+      m.set(b.rideId, list);
+    }
+
     return m;
   }, [driverBookingsQuery.data?.bookings]);
 
@@ -133,6 +191,7 @@ export function DriverRidesScreen() {
             const confirmedCount = confirmedPassengersByRideId.get(r.rideId) ?? 0;
             const isTripActive = Boolean(activeTrip);
             const passengersKnown = driverBookingsQuery.status === "success";
+            const pendingBookings = pendingBookingsByRideId.get(r.rideId) ?? [];
 
             const onStartTrip = () => {
               if (tripsQuery.isPending) return;
@@ -177,9 +236,53 @@ export function DriverRidesScreen() {
                   </div>
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground">
-                  Ride ID: {r.rideId}
+                  <p>Ride ID: {r.rideId}</p>
+
+                  {passengersKnown && pendingBookings.length ? (
+                    <div className="mt-3 grid gap-2 rounded-lg border p-3">
+                      <p className="text-sm font-medium text-foreground">
+                        Pending booking request{pendingBookings.length === 1 ? "" : "s"}
+                      </p>
+                      <div className="grid gap-2">
+                        {pendingBookings.map((b) => (
+                          <div
+                            key={b.bookingId}
+                            className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+                          >
+                            <div className="text-sm text-muted-foreground">
+                              <span className="font-medium text-foreground">
+                                {b.seatCount} seat{b.seatCount === 1 ? "" : "s"}
+                              </span>
+                              {" · "}
+                              Passenger: {b.passengerId}
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => approveMutation.mutate(b.bookingId)}
+                                disabled={approveMutation.isPending || rejectMutation.isPending}
+                              >
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => rejectMutation.mutate(b.bookingId)}
+                                disabled={approveMutation.isPending || rejectMutation.isPending}
+                              >
+                                Reject
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </CardContent>
                 <CardFooter className="justify-end gap-2">
+                  <Button variant="outline" asChild>
+                    <Link href={`/driver/rides/${r.rideId}`}>Details</Link>
+                  </Button>
                   <Button variant="outline" asChild>
                     <Link href={`/driver/rides/${r.rideId}/edit`}>Edit</Link>
                   </Button>

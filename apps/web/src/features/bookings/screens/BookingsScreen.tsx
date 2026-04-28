@@ -175,6 +175,7 @@ function BookingCard(props: {
   });
 
   const canCancel = booking.status === 0 || booking.status === 1;
+  const canViewRide = booking.status !== 3;
 
   const legText = (() => {
     if (!ride) return null;
@@ -267,9 +268,11 @@ function BookingCard(props: {
         ) : null}
       </CardContent>
       <CardFooter className="justify-end gap-2">
-        <Button variant="outline" asChild>
-          <Link href={detailsUrl}>View ride</Link>
-        </Button>
+        {canViewRide ? (
+          <Button variant="outline" asChild>
+            <Link href={detailsUrl}>View ride</Link>
+          </Button>
+        ) : null}
         {canCancel ? (
           <Button
             variant="destructive"

@@ -25,6 +25,9 @@ applyEnvFileFallbacks(['INTERNAL_JWT_SECRET']);
 
 const EnvSchema = z.object({
   INTERNAL_JWT_SECRET: z.string().min(16).default('dev-internal-jwt-secret-change-me'),
+  // Controls how far (in km) a searched origin/destination can be from any ride stop.
+  // Broader matching across neighborhoods typically needs 8–15km depending on the city.
+  SEARCH_RADIUS_KM: z.coerce.number().positive().max(50).default(10),
   SEARCH_SERVICE_GRPC_PORT: z.coerce.number().int().positive().default(50054),
   USER_SERVICE_GRPC_ADDR: z.string().min(1).default('127.0.0.1:50051'),
 });
@@ -39,3 +42,4 @@ if (!parsed.success) {
 export const SEARCH_SERVICE_GRPC_PORT = parsed.data.SEARCH_SERVICE_GRPC_PORT;
 export const USER_SERVICE_GRPC_ADDR = parsed.data.USER_SERVICE_GRPC_ADDR;
 export const INTERNAL_JWT_SECRET = parsed.data.INTERNAL_JWT_SECRET;
+export const SEARCH_RADIUS_KM = parsed.data.SEARCH_RADIUS_KM;

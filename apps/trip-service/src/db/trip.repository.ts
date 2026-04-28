@@ -107,6 +107,17 @@ export const tripRepository = {
         [input.tripId],
       );
 
+      // Mark associated ride as COMPLETED so driver lists can filter it out
+      await client.query(
+        `
+        UPDATE rides r
+        SET ride_status = 'COMPLETED'
+        FROM trips t
+        WHERE t.id = $1 AND t.ride_id = r.id
+        `,
+        [input.tripId],
+      );
+
       await client.query('COMMIT');
       return true;
     } catch (err) {
@@ -115,6 +126,44 @@ export const tripRepository = {
     } finally {
       client.release();
     }
+  },
+
+  async insertRating(input: { tripId: string; passengerId: string; driverId: string; rating: number }): Promise<void> {
+    const id = uuidv4();
+    await db.query(
+      `
+      INSERT INTO trip_ratings (id, trip_id, passenger_id, driver_id, rating)
+      VALUES ($1,$2,$3,$4,$5)
+      ON CONFLICT (trip_id, passenger_id) DO NOTHING
+      `,
+      [id, input.tripId, input.passengerId, input.driverId, input.rating],
+    );
+  },
+
+  async hasRating(tripId: string, passengerId: string): Promise<boolean> {
+    const res = await db.query<{ c: string }>(
+      `SELECT COUNT(*)::text AS c FROM trip_ratings WHERE trip_id = $1 AND passenger_id = $2 LIMIT 1`,
+      [tripId, passengerId],
+    );
+    return Number(res.rows[0]?.c ?? '0') > 0;
+  },
+
+  async getPassengerTripForRide(rideId: string, passengerId: string): Promise<{ tripId: string; status: string } | null> {
+    const res = await db.query<{ trip_id: string; trip_status: string }>(
+      `
+      SELECT t.id AS trip_id, t.trip_status
+      FROM trips t
+      JOIN trip_passengers tp ON tp.trip_id = t.id
+      WHERE t.ride_id = $1
+        AND tp.passenger_id = $2
+        AND t.trip_status = 'COMPLETED'
+      ORDER BY t.created_at DESC
+      LIMIT 1
+      `,
+      [rideId, passengerId],
+    );
+    if (!res.rows[0]) return null;
+    return { tripId: res.rows[0]!.trip_id, status: res.rows[0]!.trip_status };
   },
 
   async getTrip(tripId: string): Promise<DbTripRow> {

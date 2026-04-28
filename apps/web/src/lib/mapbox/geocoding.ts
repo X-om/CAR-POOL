@@ -54,7 +54,8 @@ export async function geocodePlaces(
   );
   url.searchParams.set("access_token", token);
   url.searchParams.set("limit", String(limit));
-  url.searchParams.set("types", "place,locality");
+  // Include POI and address so users can search for specific places (stations, landmarks)
+  url.searchParams.set("types", "place,locality,poi,address");
 
   const res = await fetch(url.toString());
   const json = (await res.json().catch(() => null)) as MapboxGeocodingResponse | null;

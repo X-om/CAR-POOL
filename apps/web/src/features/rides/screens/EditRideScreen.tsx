@@ -202,7 +202,12 @@ export function EditRideScreen({ rideId }: { rideId: string }) {
                   }
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select vehicle" />
+                    <SelectValue>
+                      {(val: any) => {
+                        const v = vehicles.find((x) => x.vehicleId === val);
+                        return v ? `${v.make} ${v.model} • ${v.licensePlate}` : "Select vehicle";
+                      }}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {vehicles.map((v) => (
@@ -287,7 +292,7 @@ export function EditRideScreen({ rideId }: { rideId: string }) {
         <Card>
           <CardHeader>
             <CardTitle>Stops</CardTitle>
-            <CardDescription>Rename stops (lat/lng are fixed).</CardDescription>
+            <CardDescription>Rename stops.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
             {stops.map((s) => (
@@ -298,7 +303,7 @@ export function EditRideScreen({ rideId }: { rideId: string }) {
                 <div className="sm:col-span-1">
                   <Badge variant="outline">{s.stopOrder}</Badge>
                 </div>
-                <div className="grid gap-1 sm:col-span-5">
+                <div className="grid gap-1 sm:col-span-11">
                   <Label className="text-xs">City name</Label>
                   <Input
                     value={s.cityName}
@@ -311,14 +316,6 @@ export function EditRideScreen({ rideId }: { rideId: string }) {
                       );
                     }}
                   />
-                </div>
-                <div className="grid gap-1 sm:col-span-3">
-                  <Label className="text-xs">Lat</Label>
-                  <Input value={String(s.latitude)} readOnly />
-                </div>
-                <div className="grid gap-1 sm:col-span-3">
-                  <Label className="text-xs">Lng</Label>
-                  <Input value={String(s.longitude)} readOnly />
                 </div>
               </div>
             ))}

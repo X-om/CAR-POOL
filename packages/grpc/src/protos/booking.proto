@@ -7,6 +7,7 @@ service BookingService {
   rpc  RejectBooking(RejectBookingRequest) returns (RejectBookingResponse);
   rpc  CancelBooking(CancelBookingRequest) returns (CancelBookingResponse);
   rpc  GetBooking(GetBookingRequest) returns (GetBookingResponse);
+  rpc  ListRideBookings(ListRideBookingsRequest) returns (ListRideBookingsResponse);
   rpc  ListUserBookings(ListUserBookingsRequest) returns (ListUserBookingsResponse);
   rpc  ListDriverBookings(ListDriverBookingsRequest) returns (ListDriverBookingsResponse);
 }
@@ -70,6 +71,14 @@ message GetBookingResponse {
   BookingStatus status = 5;
   optional int32 pickupStopOrder = 6;
   optional int32 dropoffStopOrder = 7;
+}
+
+message ListRideBookingsRequest {
+  string rideId = 1;
+}
+
+message ListRideBookingsResponse {
+  repeated GetBookingResponse bookings = 1;
 }
 
 message ListUserBookingsRequest {

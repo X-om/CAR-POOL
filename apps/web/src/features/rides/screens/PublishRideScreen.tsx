@@ -114,18 +114,19 @@ function secondsToMinutes(seconds: number) {
   return `${Math.round(seconds / 60)} min`;
 }
 
-function sampleRouteStops(options: {
-  route: MapboxRoute;
-  sourceCity: string;
-  destinationCity: string;
-  maxStops?: number;
-}) {
+function clampInt(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, Math.trunc(n)));
+}
+
+function normalizeCityName(name: string) {
+  return name.trim().toLowerCase();
+}
+
+function sampleRoutePoints(options: { route: MapboxRoute; sampleCount: number }) {
   const coords = options.route.geometry.coordinates;
-  const maxStops = options.maxStops ?? 12;
+  if (coords.length === 0) return [] as Array<{ lat: number; lng: number }>;
 
-  if (!coords.length) return [] as StopDraft[];
-
-  const sampleCount = Math.max(2, Math.min(maxStops, coords.length));
+  const sampleCount = clampInt(options.sampleCount, 2, coords.length);
   const indices = new Set<number>();
 
   for (let i = 0; i < sampleCount; i++) {
@@ -134,26 +135,91 @@ function sampleRouteStops(options: {
   }
 
   const sortedIdx = Array.from(indices).sort((a, b) => a - b);
-  const sampled = sortedIdx.map((i) => coords[i]!).map(([lng, lat]) => ({ lng, lat }));
+  return sortedIdx
+    .map((i) => coords[i]!)
+    .map(([lng, lat]) => ({ lng, lat }));
+}
 
-  return sampled.map((p, i) => {
-    const isFirst = i === 0;
-    const isLast = i === sampled.length - 1;
-    const cityName = isFirst
-      ? options.sourceCity
-      : isLast
-        ? options.destinationCity
-        : "";
+async function generateStopsForRoute(options: {
+  route: MapboxRoute;
+  sourceCity: string;
+  destinationCity: string;
+  source: { lat: number; lng: number };
+  destination: { lat: number; lng: number };
+}) {
+  const srcCity = options.sourceCity.trim();
+  const dstCity = options.destinationCity.trim();
+  if (!srcCity || !dstCity) return [] as StopDraft[];
 
-    return {
-      stopOrder: i,
-      cityName,
-      latitude: p.lat,
-      longitude: p.lng,
-      included: isFirst || isLast,
-      cityResolved: isFirst || isLast,
-    };
+  // Choose a dynamic sample count based on route length; dedupe by city name.
+  // This avoids a fixed number of stop cards (e.g. always 11).
+  const targetSamples = Math.round(options.route.distance / 40_000) + 2; // ~one sample every 40km + endpoints
+  const sampleCount = clampInt(targetSamples, 2, 20);
+
+  const points = sampleRoutePoints({ route: options.route, sampleCount });
+  if (points.length < 2) return [] as StopDraft[];
+
+  const srcNorm = normalizeCityName(srcCity);
+  const dstNorm = normalizeCityName(dstCity);
+
+  const seen = new Set<string>();
+  const intermediate: Array<{ cityName: string; lat: number; lng: number }> = [];
+  let lastNorm = srcNorm;
+  seen.add(srcNorm);
+  seen.add(dstNorm);
+
+  for (let i = 1; i < points.length - 1; i++) {
+    const p = points[i]!;
+
+    try {
+      const res = await reverseGeocodeCity(p.lat, p.lng);
+      const name = res.cityName.trim();
+      const norm = normalizeCityName(name);
+      if (!norm) continue;
+
+      if (norm === lastNorm) continue;
+      if (seen.has(norm)) continue;
+
+      intermediate.push({ cityName: name, lat: p.lat, lng: p.lng });
+      seen.add(norm);
+      lastNorm = norm;
+    } catch {
+      // Ignore individual reverse-geocode failures.
+    }
+  }
+
+  const stops: StopDraft[] = [];
+
+  stops.push({
+    stopOrder: 0,
+    cityName: srcCity,
+    latitude: options.source.lat,
+    longitude: options.source.lng,
+    included: true,
+    cityResolved: true,
   });
+
+  for (const [idx, s] of intermediate.entries()) {
+    stops.push({
+      stopOrder: idx + 1,
+      cityName: s.cityName,
+      latitude: s.lat,
+      longitude: s.lng,
+      included: false,
+      cityResolved: true,
+    });
+  }
+
+  stops.push({
+    stopOrder: intermediate.length + 1,
+    cityName: dstCity,
+    latitude: options.destination.lat,
+    longitude: options.destination.lng,
+    included: true,
+    cityResolved: true,
+  });
+
+  return stops;
 }
 
 function bbox(coords: Array<[number, number]>) {
@@ -178,14 +244,51 @@ function bbox(coords: Array<[number, number]>) {
 }
 
 function useThemeMapColors() {
-  const [colors, setColors] = React.useState<{ primary: string; muted: string } | null>(null);
+  const [colors, setColors] = React.useState<{ primary: string; muted: string; route: string } | null>(null);
 
   React.useEffect(() => {
     const s = getComputedStyle(document.documentElement);
-    const primary = s.getPropertyValue("--primary").trim() || "hsl(222.2 47.4% 11.2%)";
-    const muted =
-      s.getPropertyValue("--muted-foreground").trim() || "hsl(215.4 16.3% 46.9%)";
-    setColors({ primary, muted });
+    const rawPrimary = s.getPropertyValue("--primary").trim() || "hsl(222.2 47.4% 11.2%)";
+    const rawMuted = s.getPropertyValue("--muted-foreground").trim() || "hsl(215.4 16.3% 46.9%)";
+
+    // Use Tailwind's blue token without hard-coding a hex value.
+    const probe = document.createElement("span");
+    probe.className = "text-blue-600";
+    probe.style.position = "absolute";
+    probe.style.visibility = "hidden";
+    probe.style.pointerEvents = "none";
+    document.body.appendChild(probe);
+    const rawRoute = getComputedStyle(probe).color || "rgb(37, 99, 235)";
+    document.body.removeChild(probe);
+
+    function normalizeCssColor(raw: string, fallback: string) {
+      const v = (raw || "").trim();
+      if (!v) return fallback;
+
+      // If browser returns an unfamiliar color format (lab(), lch(), etc), try resolving
+      // it by setting it on an element and reading the computed color. Fall back to `fallback`.
+      try {
+        const el = document.createElement("div");
+        el.style.position = "absolute";
+        el.style.visibility = "hidden";
+        el.style.pointerEvents = "none";
+        el.style.color = v;
+        document.body.appendChild(el);
+        const resolved = getComputedStyle(el).color || fallback;
+        document.body.removeChild(el);
+        // If resolved still looks like lab(...), bail out to fallback
+        if (/^\s*lab\(/i.test(resolved) || /^\s*lch\(/i.test(resolved)) return fallback;
+        return resolved;
+      } catch {
+        return fallback;
+      }
+    }
+
+    const primary = normalizeCssColor(rawPrimary, "hsl(222.2 47.4% 11.2%)");
+    const muted = normalizeCssColor(rawMuted, "hsl(215.4 16.3% 46.9%)");
+    const route = normalizeCssColor(rawRoute, "rgb(37, 99, 235)");
+
+    setColors({ primary, muted, route });
   }, []);
 
   return colors;
@@ -284,16 +387,47 @@ export function PublishRideScreen() {
     onSuccess: (alts, values) => {
       setRoutes(alts);
       setSelectedRouteIdx(0);
-      const nextStops = alts[0]
-        ? sampleRouteStops({
-          route: alts[0],
-          sourceCity: values.sourceCity,
-          destinationCity: values.destinationCity,
-        })
-        : [];
 
+      const route = alts[0];
       stopsGenerationRef.current += 1;
-      setStops(nextStops);
+      const generation = stopsGenerationRef.current;
+
+      if (!route) {
+        setStops([]);
+      } else {
+        // Always show endpoints immediately; enrich with intermediate cities async.
+        setStops([
+          {
+            stopOrder: 0,
+            cityName: values.sourceCity,
+            latitude: values.sourceLat,
+            longitude: values.sourceLng,
+            included: true,
+            cityResolved: true,
+          },
+          {
+            stopOrder: 1,
+            cityName: values.destinationCity,
+            latitude: values.destLat,
+            longitude: values.destLng,
+            included: true,
+            cityResolved: true,
+          },
+        ]);
+
+        void (async () => {
+          const nextStops = await generateStopsForRoute({
+            route,
+            sourceCity: values.sourceCity,
+            destinationCity: values.destinationCity,
+            source: { lat: values.sourceLat, lng: values.sourceLng },
+            destination: { lat: values.destLat, lng: values.destLng },
+          });
+
+          if (stopsGenerationRef.current !== generation) return;
+          if (nextStops.length >= 2) setStops(nextStops);
+        })();
+      }
       toast.success(`${alts.length} route option${alts.length === 1 ? "" : "s"} found`);
     },
   });
@@ -328,67 +462,6 @@ export function PublishRideScreen() {
       router.push("/driver/rides");
     },
   });
-
-  // Resolve intermediate stop city names from coordinates.
-  React.useEffect(() => {
-    if (!canUseMapbox) return;
-    if (stops.length < 3) return;
-
-    const generation = stopsGenerationRef.current;
-    const ordered = stops.slice().sort((a, b) => a.stopOrder - b.stopOrder);
-    const firstOrder = ordered[0]!.stopOrder;
-    const lastOrder = ordered[ordered.length - 1]!.stopOrder;
-
-    const pending = ordered.filter(
-      (s) =>
-        !s.cityResolved &&
-        s.stopOrder !== firstOrder &&
-        s.stopOrder !== lastOrder
-    );
-
-    if (pending.length === 0) return;
-
-    let cancelled = false;
-    (async () => {
-      const updates = new globalThis.Map<
-        number,
-        { cityName?: string; cityResolved: boolean }
-      >();
-
-      for (const s of pending) {
-        if (cancelled) return;
-        try {
-          const res = await reverseGeocodeCity(s.latitude, s.longitude);
-          updates.set(s.stopOrder, {
-            cityName: res.cityName,
-            cityResolved: true,
-          });
-        } catch {
-          updates.set(s.stopOrder, { cityResolved: true });
-        }
-      }
-
-      if (cancelled) return;
-      if (stopsGenerationRef.current !== generation) return;
-
-      setStops((prev) =>
-        prev.map((s) => {
-          const u = updates.get(s.stopOrder);
-          if (!u) return s;
-          return {
-            ...s,
-            cityName:
-              s.cityName.trim().length > 0 ? s.cityName : (u.cityName ?? s.cityName),
-            cityResolved: u.cityResolved,
-          };
-        })
-      );
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [canUseMapbox, stops]);
 
   React.useEffect(() => {
     if (!routes || !routes[selectedRouteIdx]) return;
@@ -443,8 +516,8 @@ export function PublishRideScreen() {
     features: altLines,
   };
 
-  const primary = themeColors?.primary ?? "hsl(222.2 47.4% 11.2%)";
   const muted = themeColors?.muted ?? "hsl(215.4 16.3% 46.9%)";
+  const routeBlue = themeColors?.route ?? "rgb(37, 99, 235)";
 
   const watchedSourceCity = useWatch({ control: form.control, name: "sourceCity" });
   const watchedDestinationCity = useWatch({ control: form.control, name: "destinationCity" });
@@ -481,13 +554,40 @@ export function PublishRideScreen() {
     if (!route) return;
 
     setSelectedRouteIdx(idx);
-    const nextStops = sampleRouteStops({
-      route,
-      sourceCity: values.sourceCity,
-      destinationCity: values.destinationCity,
-    });
     stopsGenerationRef.current += 1;
-    setStops(nextStops);
+    const generation = stopsGenerationRef.current;
+
+    setStops([
+      {
+        stopOrder: 0,
+        cityName: values.sourceCity,
+        latitude: Number(values.sourceLat),
+        longitude: Number(values.sourceLng),
+        included: true,
+        cityResolved: true,
+      },
+      {
+        stopOrder: 1,
+        cityName: values.destinationCity,
+        latitude: Number(values.destLat),
+        longitude: Number(values.destLng),
+        included: true,
+        cityResolved: true,
+      },
+    ]);
+
+    void (async () => {
+      const nextStops = await generateStopsForRoute({
+        route,
+        sourceCity: values.sourceCity,
+        destinationCity: values.destinationCity,
+        source: { lat: Number(values.sourceLat), lng: Number(values.sourceLng) },
+        destination: { lat: Number(values.destLat), lng: Number(values.destLng) },
+      });
+
+      if (stopsGenerationRef.current !== generation) return;
+      if (nextStops.length >= 2) setStops(nextStops);
+    })();
   };
 
   const onPublish = form.handleSubmit(async (values) => {
@@ -560,7 +660,12 @@ export function PublishRideScreen() {
                   }
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select vehicle" />
+                    <SelectValue>
+                      {(val: any) => {
+                        const v = vehicles.find((x) => x.vehicleId === val);
+                        return v ? `${v.make} ${v.model} • ${v.licensePlate}` : "Select vehicle";
+                      }}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {vehicles.map((v) => (
@@ -820,7 +925,7 @@ export function PublishRideScreen() {
                       id="selected-route-layer"
                       type="line"
                       paint={{
-                        "line-color": primary,
+                        "line-color": routeBlue,
                         "line-width": 5,
                         "line-opacity": 0.85,
                       }}

@@ -120,6 +120,14 @@ export interface GetBookingResponse {
   dropoffStopOrder?: number | undefined;
 }
 
+export interface ListRideBookingsRequest {
+  rideId: string;
+}
+
+export interface ListRideBookingsResponse {
+  bookings: GetBookingResponse[];
+}
+
 export interface ListUserBookingsRequest {
   passengerId: string;
 }
@@ -960,6 +968,126 @@ export const GetBookingResponse: MessageFns<GetBookingResponse> = {
   },
 };
 
+function createBaseListRideBookingsRequest(): ListRideBookingsRequest {
+  return { rideId: "" };
+}
+
+export const ListRideBookingsRequest: MessageFns<ListRideBookingsRequest> = {
+  encode(message: ListRideBookingsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rideId !== "") {
+      writer.uint32(10).string(message.rideId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListRideBookingsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListRideBookingsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rideId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListRideBookingsRequest {
+    return { rideId: isSet(object.rideId) ? globalThis.String(object.rideId) : "" };
+  },
+
+  toJSON(message: ListRideBookingsRequest): unknown {
+    const obj: any = {};
+    if (message.rideId !== "") {
+      obj.rideId = message.rideId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListRideBookingsRequest>, I>>(base?: I): ListRideBookingsRequest {
+    return ListRideBookingsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListRideBookingsRequest>, I>>(object: I): ListRideBookingsRequest {
+    const message = createBaseListRideBookingsRequest();
+    message.rideId = object.rideId ?? "";
+    return message;
+  },
+};
+
+function createBaseListRideBookingsResponse(): ListRideBookingsResponse {
+  return { bookings: [] };
+}
+
+export const ListRideBookingsResponse: MessageFns<ListRideBookingsResponse> = {
+  encode(message: ListRideBookingsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.bookings) {
+      GetBookingResponse.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListRideBookingsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListRideBookingsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.bookings.push(GetBookingResponse.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListRideBookingsResponse {
+    return {
+      bookings: globalThis.Array.isArray(object?.bookings)
+        ? object.bookings.map((e: any) => GetBookingResponse.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ListRideBookingsResponse): unknown {
+    const obj: any = {};
+    if (message.bookings?.length) {
+      obj.bookings = message.bookings.map((e) => GetBookingResponse.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListRideBookingsResponse>, I>>(base?: I): ListRideBookingsResponse {
+    return ListRideBookingsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListRideBookingsResponse>, I>>(object: I): ListRideBookingsResponse {
+    const message = createBaseListRideBookingsResponse();
+    message.bookings = object.bookings?.map((e) => GetBookingResponse.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 function createBaseListUserBookingsRequest(): ListUserBookingsRequest {
   return { passengerId: "" };
 }
@@ -1252,6 +1380,17 @@ export const BookingServiceService = {
     responseSerialize: (value: GetBookingResponse): Buffer => Buffer.from(GetBookingResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetBookingResponse => GetBookingResponse.decode(value),
   },
+  listRideBookings: {
+    path: "/booking.BookingService/ListRideBookings" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListRideBookingsRequest): Buffer =>
+      Buffer.from(ListRideBookingsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListRideBookingsRequest => ListRideBookingsRequest.decode(value),
+    responseSerialize: (value: ListRideBookingsResponse): Buffer =>
+      Buffer.from(ListRideBookingsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListRideBookingsResponse => ListRideBookingsResponse.decode(value),
+  },
   listUserBookings: {
     path: "/booking.BookingService/ListUserBookings" as const,
     requestStream: false as const,
@@ -1282,6 +1421,7 @@ export interface BookingServiceServer extends UntypedServiceImplementation {
   rejectBooking: handleUnaryCall<RejectBookingRequest, RejectBookingResponse>;
   cancelBooking: handleUnaryCall<CancelBookingRequest, CancelBookingResponse>;
   getBooking: handleUnaryCall<GetBookingRequest, GetBookingResponse>;
+  listRideBookings: handleUnaryCall<ListRideBookingsRequest, ListRideBookingsResponse>;
   listUserBookings: handleUnaryCall<ListUserBookingsRequest, ListUserBookingsResponse>;
   listDriverBookings: handleUnaryCall<ListDriverBookingsRequest, ListDriverBookingsResponse>;
 }
@@ -1361,6 +1501,21 @@ export interface BookingServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetBookingResponse) => void,
+  ): ClientUnaryCall;
+  listRideBookings(
+    request: ListRideBookingsRequest,
+    callback: (error: ServiceError | null, response: ListRideBookingsResponse) => void,
+  ): ClientUnaryCall;
+  listRideBookings(
+    request: ListRideBookingsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListRideBookingsResponse) => void,
+  ): ClientUnaryCall;
+  listRideBookings(
+    request: ListRideBookingsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListRideBookingsResponse) => void,
   ): ClientUnaryCall;
   listUserBookings(
     request: ListUserBookingsRequest,

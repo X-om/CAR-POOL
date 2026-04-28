@@ -3,7 +3,7 @@ import { sendMail } from '@repo/mailer';
 import { db, insertOutboxEvent } from '@repo/database';
 import { eventTopicForType, makeEnvelope } from '@repo/contracts';
 import { tripRepository } from '../db/trip.repository';
-import { getUserEmail } from '../clients/user.client';
+import { getUserEmail, updateUserRating } from '../clients/user.client';
 import { APP_NAME, MAIL_FROM } from '../env';
 import { randomUUID } from 'node:crypto';
 
@@ -96,6 +96,31 @@ export const tripService = {
 
   async pickupPassenger(req: trip.PickupPassengerRequest): Promise<trip.PickupPassengerResponse> {
     const success = await tripRepository.markPassengerPickedUp({ tripId: req.tripId, passengerId: req.passengerId });
+    if (success) {
+      try {
+        const toEmail = await getUserEmail(req.passengerId);
+        if (toEmail) {
+          const pickedAt = new Date().toISOString();
+          await sendMail({
+            from: MAIL_FROM,
+            to: toEmail,
+            // template types are fine at runtime; cast to any to avoid cross-package build ordering issues
+            templateId: 'trip-pickup' as any,
+            templateVariables: {
+              appName: APP_NAME,
+              toEmail,
+              tripId: req.tripId,
+              passengerId: req.passengerId,
+              pickedAt,
+            } as any,
+          });
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('[trip-service] failed to send pickup email', err);
+      }
+    }
+
     return { success };
   },
 
@@ -170,6 +195,40 @@ export const tripService = {
     }
 
     return { success };
+  },
+
+  async submitRating(req: any): Promise<any> {
+    const { tripId, passengerId, rating } = req;
+    // Validate passenger participated in trip
+    const participants = await tripRepository.getTripParticipantIds(tripId);
+    if (!participants.passengerIds.includes(passengerId)) throw new Error('NOT_A_PARTICIPANT');
+
+    // Prevent duplicate ratings
+    const already = await tripRepository.hasRating(tripId, passengerId);
+    if (already) throw new Error('ALREADY_RATED');
+
+    // Persist rating
+    await tripRepository.insertRating({ tripId, passengerId, driverId: participants.driverId, rating });
+
+    // Update driver's aggregate rating via user service
+    try {
+      await updateUserRating(participants.driverId, rating);
+    } catch (err) {
+      // log but don't fail the rating
+      // eslint-disable-next-line no-console
+      console.error('[trip-service] failed to update driver aggregate rating', err);
+    }
+
+    return { success: true };
+  },
+
+  async getPassengerTrip(req: any): Promise<any> {
+    const res = await tripRepository.getPassengerTripForRide(req.rideId, req.passengerId);
+    if (!res) return { tripId: '', status: trip.TripStatus.SCHEDULED, hasRated: false };
+
+    const hasRated = await tripRepository.hasRating(res.tripId, req.passengerId);
+    const status = res.status === 'COMPLETED' ? trip.TripStatus.COMPLETED : trip.TripStatus.SCHEDULED;
+    return { tripId: res.tripId, status, hasRated };
   },
 
   async getTrip(req: trip.GetTripRequest): Promise<trip.GetTripResponse> {

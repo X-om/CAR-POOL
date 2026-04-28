@@ -28,3 +28,11 @@ export async function completeTrip(tripId: string) {
     auth: true,
   });
 }
+
+export async function submitTripRating(tripId: string, rating: number) {
+  return apiPost<{ success: boolean }>(`/trips/${tripId}/rate`, { rating }, { auth: true });
+}
+
+export async function getPassengerTripForRide(rideId: string, passengerId: string) {
+  return apiGet<{ tripId: string; status: number; hasRated: boolean }>(`/trips/ride/${rideId}/passenger/${passengerId}`, { auth: true });
+}

@@ -11,6 +11,7 @@ export const EmailTemplateIdSchema = z.enum([
   "ride-updated",
   "ride-cancelled",
   "trip-reminder",
+  "trip-pickup",
   "trip-started",
   "trip-completed",
 ]);
@@ -108,6 +109,13 @@ export type EmailTemplateVariables = {
     sourceCity?: string;
     destinationCity?: string;
     departureTime?: string;
+  };
+  "trip-pickup": {
+    appName: string;
+    toEmail: string;
+    tripId: string;
+    passengerId: string;
+    pickedAt: string;
   };
   "trip-started": {
     appName: string;

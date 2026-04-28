@@ -455,6 +455,21 @@ export const bookingService = {
     };
   },
 
+  async listRideBookings(req: booking.ListRideBookingsRequest): Promise<booking.ListRideBookingsResponse> {
+    const rows = await bookingRepository.listRideBookings(req.rideId);
+    return {
+      bookings: rows.map((b) => ({
+        bookingId: b.id,
+        rideId: b.ride_id,
+        passengerId: b.passenger_id,
+        seatCount: b.seat_count,
+        status: statusFromDb(b.booking_status),
+        pickupStopOrder: b.pickup_stop_order ?? undefined,
+        dropoffStopOrder: b.dropoff_stop_order ?? undefined,
+      })),
+    };
+  },
+
   async listUserBookings(req: booking.ListUserBookingsRequest): Promise<booking.ListUserBookingsResponse> {
     const rows = await bookingRepository.listUserBookings(req.passengerId);
     return {

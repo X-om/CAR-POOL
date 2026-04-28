@@ -112,6 +112,27 @@ export interface GetTripResponse {
   status: TripStatus;
 }
 
+export interface SubmitRatingRequest {
+  tripId: string;
+  passengerId: string;
+  rating: number;
+}
+
+export interface SubmitRatingResponse {
+  success: boolean;
+}
+
+export interface GetPassengerTripRequest {
+  rideId: string;
+  passengerId: string;
+}
+
+export interface GetPassengerTripResponse {
+  tripId: string;
+  status: TripStatus;
+  hasRated: boolean;
+}
+
 export interface ListDriverTripsRequest {
   driverId: string;
 }
@@ -724,6 +745,324 @@ export const GetTripResponse: MessageFns<GetTripResponse> = {
   },
 };
 
+function createBaseSubmitRatingRequest(): SubmitRatingRequest {
+  return { tripId: "", passengerId: "", rating: 0 };
+}
+
+export const SubmitRatingRequest: MessageFns<SubmitRatingRequest> = {
+  encode(message: SubmitRatingRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.tripId !== "") {
+      writer.uint32(10).string(message.tripId);
+    }
+    if (message.passengerId !== "") {
+      writer.uint32(18).string(message.passengerId);
+    }
+    if (message.rating !== 0) {
+      writer.uint32(24).int32(message.rating);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SubmitRatingRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSubmitRatingRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.tripId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.passengerId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.rating = reader.int32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SubmitRatingRequest {
+    return {
+      tripId: isSet(object.tripId) ? globalThis.String(object.tripId) : "",
+      passengerId: isSet(object.passengerId) ? globalThis.String(object.passengerId) : "",
+      rating: isSet(object.rating) ? globalThis.Number(object.rating) : 0,
+    };
+  },
+
+  toJSON(message: SubmitRatingRequest): unknown {
+    const obj: any = {};
+    if (message.tripId !== "") {
+      obj.tripId = message.tripId;
+    }
+    if (message.passengerId !== "") {
+      obj.passengerId = message.passengerId;
+    }
+    if (message.rating !== 0) {
+      obj.rating = Math.round(message.rating);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SubmitRatingRequest>, I>>(base?: I): SubmitRatingRequest {
+    return SubmitRatingRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SubmitRatingRequest>, I>>(object: I): SubmitRatingRequest {
+    const message = createBaseSubmitRatingRequest();
+    message.tripId = object.tripId ?? "";
+    message.passengerId = object.passengerId ?? "";
+    message.rating = object.rating ?? 0;
+    return message;
+  },
+};
+
+function createBaseSubmitRatingResponse(): SubmitRatingResponse {
+  return { success: false };
+}
+
+export const SubmitRatingResponse: MessageFns<SubmitRatingResponse> = {
+  encode(message: SubmitRatingResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.success !== false) {
+      writer.uint32(8).bool(message.success);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SubmitRatingResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSubmitRatingResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.success = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SubmitRatingResponse {
+    return { success: isSet(object.success) ? globalThis.Boolean(object.success) : false };
+  },
+
+  toJSON(message: SubmitRatingResponse): unknown {
+    const obj: any = {};
+    if (message.success !== false) {
+      obj.success = message.success;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SubmitRatingResponse>, I>>(base?: I): SubmitRatingResponse {
+    return SubmitRatingResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SubmitRatingResponse>, I>>(object: I): SubmitRatingResponse {
+    const message = createBaseSubmitRatingResponse();
+    message.success = object.success ?? false;
+    return message;
+  },
+};
+
+function createBaseGetPassengerTripRequest(): GetPassengerTripRequest {
+  return { rideId: "", passengerId: "" };
+}
+
+export const GetPassengerTripRequest: MessageFns<GetPassengerTripRequest> = {
+  encode(message: GetPassengerTripRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rideId !== "") {
+      writer.uint32(10).string(message.rideId);
+    }
+    if (message.passengerId !== "") {
+      writer.uint32(18).string(message.passengerId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetPassengerTripRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetPassengerTripRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rideId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.passengerId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetPassengerTripRequest {
+    return {
+      rideId: isSet(object.rideId) ? globalThis.String(object.rideId) : "",
+      passengerId: isSet(object.passengerId) ? globalThis.String(object.passengerId) : "",
+    };
+  },
+
+  toJSON(message: GetPassengerTripRequest): unknown {
+    const obj: any = {};
+    if (message.rideId !== "") {
+      obj.rideId = message.rideId;
+    }
+    if (message.passengerId !== "") {
+      obj.passengerId = message.passengerId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetPassengerTripRequest>, I>>(base?: I): GetPassengerTripRequest {
+    return GetPassengerTripRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetPassengerTripRequest>, I>>(object: I): GetPassengerTripRequest {
+    const message = createBaseGetPassengerTripRequest();
+    message.rideId = object.rideId ?? "";
+    message.passengerId = object.passengerId ?? "";
+    return message;
+  },
+};
+
+function createBaseGetPassengerTripResponse(): GetPassengerTripResponse {
+  return { tripId: "", status: 0, hasRated: false };
+}
+
+export const GetPassengerTripResponse: MessageFns<GetPassengerTripResponse> = {
+  encode(message: GetPassengerTripResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.tripId !== "") {
+      writer.uint32(10).string(message.tripId);
+    }
+    if (message.status !== 0) {
+      writer.uint32(16).int32(message.status);
+    }
+    if (message.hasRated !== false) {
+      writer.uint32(24).bool(message.hasRated);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetPassengerTripResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetPassengerTripResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.tripId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.hasRated = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetPassengerTripResponse {
+    return {
+      tripId: isSet(object.tripId) ? globalThis.String(object.tripId) : "",
+      status: isSet(object.status) ? tripStatusFromJSON(object.status) : 0,
+      hasRated: isSet(object.hasRated) ? globalThis.Boolean(object.hasRated) : false,
+    };
+  },
+
+  toJSON(message: GetPassengerTripResponse): unknown {
+    const obj: any = {};
+    if (message.tripId !== "") {
+      obj.tripId = message.tripId;
+    }
+    if (message.status !== 0) {
+      obj.status = tripStatusToJSON(message.status);
+    }
+    if (message.hasRated !== false) {
+      obj.hasRated = message.hasRated;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetPassengerTripResponse>, I>>(base?: I): GetPassengerTripResponse {
+    return GetPassengerTripResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetPassengerTripResponse>, I>>(object: I): GetPassengerTripResponse {
+    const message = createBaseGetPassengerTripResponse();
+    message.tripId = object.tripId ?? "";
+    message.status = object.status ?? 0;
+    message.hasRated = object.hasRated ?? false;
+    return message;
+  },
+};
+
 function createBaseListDriverTripsRequest(): ListDriverTripsRequest {
   return { driverId: "" };
 }
@@ -894,6 +1233,27 @@ export const TripServiceService = {
       Buffer.from(ListDriverTripsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): ListDriverTripsResponse => ListDriverTripsResponse.decode(value),
   },
+  submitRating: {
+    path: "/trip.TripService/SubmitRating" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: SubmitRatingRequest): Buffer => Buffer.from(SubmitRatingRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): SubmitRatingRequest => SubmitRatingRequest.decode(value),
+    responseSerialize: (value: SubmitRatingResponse): Buffer =>
+      Buffer.from(SubmitRatingResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): SubmitRatingResponse => SubmitRatingResponse.decode(value),
+  },
+  getPassengerTrip: {
+    path: "/trip.TripService/GetPassengerTrip" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetPassengerTripRequest): Buffer =>
+      Buffer.from(GetPassengerTripRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetPassengerTripRequest => GetPassengerTripRequest.decode(value),
+    responseSerialize: (value: GetPassengerTripResponse): Buffer =>
+      Buffer.from(GetPassengerTripResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetPassengerTripResponse => GetPassengerTripResponse.decode(value),
+  },
 } as const;
 
 export interface TripServiceServer extends UntypedServiceImplementation {
@@ -902,6 +1262,8 @@ export interface TripServiceServer extends UntypedServiceImplementation {
   completeTrip: handleUnaryCall<CompleteTripRequest, CompleteTripResponse>;
   getTrip: handleUnaryCall<GetTripRequest, GetTripResponse>;
   listDriverTrips: handleUnaryCall<ListDriverTripsRequest, ListDriverTripsResponse>;
+  submitRating: handleUnaryCall<SubmitRatingRequest, SubmitRatingResponse>;
+  getPassengerTrip: handleUnaryCall<GetPassengerTripRequest, GetPassengerTripResponse>;
 }
 
 export interface TripServiceClient extends Client {
@@ -979,6 +1341,36 @@ export interface TripServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ListDriverTripsResponse) => void,
+  ): ClientUnaryCall;
+  submitRating(
+    request: SubmitRatingRequest,
+    callback: (error: ServiceError | null, response: SubmitRatingResponse) => void,
+  ): ClientUnaryCall;
+  submitRating(
+    request: SubmitRatingRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: SubmitRatingResponse) => void,
+  ): ClientUnaryCall;
+  submitRating(
+    request: SubmitRatingRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: SubmitRatingResponse) => void,
+  ): ClientUnaryCall;
+  getPassengerTrip(
+    request: GetPassengerTripRequest,
+    callback: (error: ServiceError | null, response: GetPassengerTripResponse) => void,
+  ): ClientUnaryCall;
+  getPassengerTrip(
+    request: GetPassengerTripRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetPassengerTripResponse) => void,
+  ): ClientUnaryCall;
+  getPassengerTrip(
+    request: GetPassengerTripRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetPassengerTripResponse) => void,
   ): ClientUnaryCall;
 }
 

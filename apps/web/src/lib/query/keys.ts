@@ -6,6 +6,7 @@ export const queryKeys = {
   trips: ["trips"] as const,
   trip: (tripId: string) => ["trip", tripId] as const,
   bookings: ["bookings"] as const,
+  rideBookings: (rideId: string) => ["rideBookings", rideId] as const,
   notifications: ["notifications"] as const,
   user: (userId: string) => ["user", userId] as const,
   userProfile: (userId: string) => ["userProfile", userId] as const,

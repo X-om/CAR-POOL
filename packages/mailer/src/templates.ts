@@ -3,6 +3,8 @@ import path from "node:path";
 import Handlebars from "handlebars";
 import type { EmailTemplateId, EmailTemplateVariables } from "./types";
 
+Handlebars.registerHelper("eq", (a: unknown, b: unknown) => a === b);
+
 export type RenderedEmail = {
   subject: string;
   text: string;

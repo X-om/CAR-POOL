@@ -7,6 +7,8 @@ service TripService {
   rpc  CompleteTrip(CompleteTripRequest) returns (CompleteTripResponse);
   rpc  GetTrip(GetTripRequest) returns (GetTripResponse);
   rpc  ListDriverTrips(ListDriverTripsRequest) returns (ListDriverTripsResponse);
+  rpc  SubmitRating(SubmitRatingRequest) returns (SubmitRatingResponse);
+  rpc  GetPassengerTrip(GetPassengerTripRequest) returns (GetPassengerTripResponse);
 }
 enum TripStatus {
   SCHEDULED = 0;
@@ -54,6 +56,27 @@ message GetTripResponse {
   string driverId = 3;
   repeated string passengerIds = 4;
   TripStatus status = 5;
+}
+
+message SubmitRatingRequest {
+  string tripId = 1;
+  string passengerId = 2;
+  int32 rating = 3;
+}
+
+message SubmitRatingResponse {
+  bool success = 1;
+}
+
+message GetPassengerTripRequest {
+  string rideId = 1;
+  string passengerId = 2;
+}
+
+message GetPassengerTripResponse {
+  string tripId = 1;
+  TripStatus status = 2;
+  bool hasRated = 3;
 }
 
 message ListDriverTripsRequest {

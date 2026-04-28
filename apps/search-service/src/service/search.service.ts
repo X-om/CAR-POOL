@@ -1,4 +1,5 @@
 import { search } from '@repo/grpc';
+import { SEARCH_RADIUS_KM } from '../env';
 import { getUserRating } from '../clients/user.client';
 import { searchRepository } from '../db/search.repository';
 import { approxDegreeDeltaKm, haversineKm } from '../utils/geo';
@@ -11,7 +12,7 @@ function unixToDate(unix: number | bigint): Date {
 
 export const searchService = {
   async searchRides(req: search.SearchRidesRequest): Promise<search.SearchRidesResponse> {
-    const RADIUS_KM = 5;
+    const RADIUS_KM = SEARCH_RADIUS_KM;
     const delta = approxDegreeDeltaKm(RADIUS_KM);
 
     const departureTimeNum = typeof req.departureTime === 'number' ? req.departureTime : Number(req.departureTime);

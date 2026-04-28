@@ -18,6 +18,8 @@ type DbRideForBookingRow = {
   source_city: string | null;
   destination_city: string | null;
   departure_time: Date | null;
+  ride_status: string | null;
+  has_completed_trip: boolean;
 };
 
 type DbBookingWithRideRow = DbBookingRow & {
@@ -35,9 +37,22 @@ export const bookingRepository = {
   async getRideForBooking(rideId: string): Promise<DbRideForBookingRow> {
     const res = await db.query<DbRideForBookingRow>(
       `
-      SELECT id, driver_id, approval_mode, source_city, destination_city, departure_time
-      FROM rides
-      WHERE id = $1
+      SELECT
+        r.id,
+        r.driver_id,
+        r.approval_mode,
+        r.source_city,
+        r.destination_city,
+        r.departure_time,
+        r.ride_status,
+        EXISTS (
+          SELECT 1
+          FROM trips t
+          WHERE t.ride_id = r.id
+            AND t.trip_status = 'COMPLETED'
+        ) AS has_completed_trip
+      FROM rides r
+      WHERE r.id = $1
       LIMIT 1
       `,
       [rideId],
@@ -161,6 +176,20 @@ export const bookingRepository = {
       ORDER BY b.created_at DESC
       `,
       [driverId],
+    );
+    return res.rows;
+  },
+
+  async listRideBookings(rideId: string): Promise<DbBookingRow[]> {
+    const res = await db.query<DbBookingRow>(
+      `
+      SELECT id, ride_id, passenger_id, seat_count, booking_status, pickup_stop_order, dropoff_stop_order
+      FROM bookings
+      WHERE ride_id = $1
+        AND booking_status = 'CONFIRMED'
+      ORDER BY created_at DESC
+      `,
+      [rideId],
     );
     return res.rows;
   },

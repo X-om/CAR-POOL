@@ -21,6 +21,7 @@ export const bookingHandler: booking.BookingServiceServer = {
   rejectBooking: unary(bookingService.rejectBooking),
   cancelBooking: unary(bookingService.cancelBooking),
   getBooking: unary(bookingService.getBooking),
+  listRideBookings: unary(bookingService.listRideBookings),
   listUserBookings: unary(bookingService.listUserBookings),
   listDriverBookings: unary(bookingService.listDriverBookings),
 };

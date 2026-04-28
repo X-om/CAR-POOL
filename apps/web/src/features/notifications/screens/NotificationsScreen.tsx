@@ -19,8 +19,27 @@ import {
   listNotifications,
   markNotificationRead,
 } from "@/features/notifications/api/notificationsApi";
+import { approveBooking, rejectBooking } from "@/features/bookings/api/bookingsApi";
+import { listDriverRides } from "@/features/rides/api/ridesApi";
 import { formatDateTime } from "@/lib/format/date";
 import { queryKeys } from "@/lib/query/keys";
+
+type BookingRequestedPayload = {
+  bookingId: string;
+  rideId: string;
+  passengerId: string;
+  driverId: string;
+  seatCount: number;
+};
+
+function parseJson<T>(value: string | undefined | null): T | null {
+  if (!value) return null;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return null;
+  }
+}
 
 export function NotificationsScreen() {
   const queryClient = useQueryClient();
@@ -38,7 +57,68 @@ export function NotificationsScreen() {
     },
   });
 
+  const approveMutation = useMutation({
+    mutationFn: (bookingId: string) => approveBooking(bookingId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["driverBookings"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
+      toast.success("Booking approved");
+    },
+    onError: (e) => {
+      const message = e instanceof Error ? e.message : "Failed to approve booking";
+      toast.error(message);
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (bookingId: string) => rejectBooking(bookingId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["driverBookings"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
+      toast.success("Booking rejected");
+    },
+    onError: (e) => {
+      const message = e instanceof Error ? e.message : "Failed to reject booking";
+      toast.error(message);
+    },
+  });
+
   const items = notificationsQuery.data?.notifications ?? [];
+
+  const bookingRequestedByNotificationId = React.useMemo(() => {
+    const m = new Map<string, BookingRequestedPayload>();
+    for (const n of items) {
+      if (n.eventType !== "booking.requested") continue;
+      const payload = parseJson<BookingRequestedPayload>(n.payloadJson);
+      if (!payload?.bookingId || !payload?.rideId) continue;
+      m.set(n.notificationId, payload);
+    }
+    return m;
+  }, [items]);
+
+  const bookingRequestedRideIds = React.useMemo(() => {
+    const ids = new Set<string>();
+    for (const p of bookingRequestedByNotificationId.values()) {
+      ids.add(p.rideId);
+    }
+    return Array.from(ids);
+  }, [bookingRequestedByNotificationId]);
+
+  const driverRidesQuery = useQuery({
+    queryKey: queryKeys.rides,
+    queryFn: listDriverRides,
+    enabled: bookingRequestedRideIds.length > 0,
+  });
+
+  const rideApprovalModeById = React.useMemo(() => {
+    const m = new Map<string, number>();
+    const rides = driverRidesQuery.data?.rides ?? [];
+    for (const r of rides) {
+      if (!r.rideId) continue;
+      if (typeof r.approvalMode === "number") m.set(r.rideId, r.approvalMode);
+    }
+    return m;
+  }, [driverRidesQuery.data?.rides]);
 
   return (
     <div className="grid gap-6">
@@ -91,7 +171,35 @@ export function NotificationsScreen() {
               </div>
             </CardHeader>
             <CardContent className="text-sm">{n.message}</CardContent>
-            <CardFooter className="justify-end">
+            <CardFooter className="justify-end gap-2">
+              {(() => {
+                const payload = bookingRequestedByNotificationId.get(n.notificationId);
+                const isManual =
+                  payload?.rideId != null
+                    ? rideApprovalModeById.get(payload.rideId) === 1
+                    : false;
+
+                if (!payload || !isManual) return null;
+
+                return (
+                  <>
+                    <Button
+                      onClick={() => approveMutation.mutate(payload.bookingId)}
+                      disabled={approveMutation.isPending || rejectMutation.isPending}
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => rejectMutation.mutate(payload.bookingId)}
+                      disabled={approveMutation.isPending || rejectMutation.isPending}
+                    >
+                      Reject
+                    </Button>
+                  </>
+                );
+              })()}
+
               {!n.isRead ? (
                 <Button
                   variant="outline"

@@ -417,6 +417,7 @@ export const rideRepository = {
         created_at
       FROM rides
       WHERE driver_id = $1
+        AND (ride_status = 'ACTIVE' OR ride_status IS NULL)
       ORDER BY created_at DESC
       `,
       [driverId],

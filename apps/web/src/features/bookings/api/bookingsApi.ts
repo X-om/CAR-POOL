@@ -9,6 +9,10 @@ export async function listDriverBookings() {
   return apiGet<{ bookings: Booking[] }>("/bookings/driver", { auth: true });
 }
 
+export async function listRideBookings(rideId: string) {
+  return apiGet<{ bookings: Booking[] }>(`/bookings/ride/${rideId}`, { auth: true });
+}
+
 export async function createBooking(payload: {
   rideId: string;
   seatCount: number;
