@@ -110,6 +110,7 @@ export interface GetTripResponse {
   driverId: string;
   passengerIds: string[];
   status: TripStatus;
+  pickedUpPassengerIds: string[];
 }
 
 export interface SubmitRatingRequest {
@@ -620,7 +621,7 @@ export const GetTripRequest: MessageFns<GetTripRequest> = {
 };
 
 function createBaseGetTripResponse(): GetTripResponse {
-  return { tripId: "", rideId: "", driverId: "", passengerIds: [], status: 0 };
+  return { tripId: "", rideId: "", driverId: "", passengerIds: [], status: 0, pickedUpPassengerIds: [] };
 }
 
 export const GetTripResponse: MessageFns<GetTripResponse> = {
@@ -639,6 +640,9 @@ export const GetTripResponse: MessageFns<GetTripResponse> = {
     }
     if (message.status !== 0) {
       writer.uint32(40).int32(message.status);
+    }
+    for (const v of message.pickedUpPassengerIds) {
+      writer.uint32(50).string(v!);
     }
     return writer;
   },
@@ -690,6 +694,14 @@ export const GetTripResponse: MessageFns<GetTripResponse> = {
           message.status = reader.int32() as any;
           continue;
         }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.pickedUpPassengerIds.push(reader.string());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -708,6 +720,9 @@ export const GetTripResponse: MessageFns<GetTripResponse> = {
         ? object.passengerIds.map((e: any) => globalThis.String(e))
         : [],
       status: isSet(object.status) ? tripStatusFromJSON(object.status) : 0,
+      pickedUpPassengerIds: globalThis.Array.isArray(object?.pickedUpPassengerIds)
+        ? object.pickedUpPassengerIds.map((e: any) => globalThis.String(e))
+        : [],
     };
   },
 
@@ -728,6 +743,9 @@ export const GetTripResponse: MessageFns<GetTripResponse> = {
     if (message.status !== 0) {
       obj.status = tripStatusToJSON(message.status);
     }
+    if (message.pickedUpPassengerIds?.length) {
+      obj.pickedUpPassengerIds = message.pickedUpPassengerIds;
+    }
     return obj;
   },
 
@@ -741,6 +759,7 @@ export const GetTripResponse: MessageFns<GetTripResponse> = {
     message.driverId = object.driverId ?? "";
     message.passengerIds = object.passengerIds?.map((e) => e) || [];
     message.status = object.status ?? 0;
+    message.pickedUpPassengerIds = object.pickedUpPassengerIds?.map((e) => e) || [];
     return message;
   },
 };

@@ -56,6 +56,7 @@ message GetTripResponse {
   string driverId = 3;
   repeated string passengerIds = 4;
   TripStatus status = 5;
+  repeated string pickedUpPassengerIds = 6;
 }
 
 message SubmitRatingRequest {

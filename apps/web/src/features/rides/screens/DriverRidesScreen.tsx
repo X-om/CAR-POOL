@@ -106,6 +106,11 @@ export function DriverRidesScreen() {
     return m;
   }, [trips]);
 
+  const visibleRides = React.useMemo(() => {
+    const now = Date.now();
+    return rides.filter((r) => !activeTripByRideId.has(r.rideId) && r.departureTime >= now);
+  }, [rides, activeTripByRideId]);
+
   const confirmedPassengersByRideId = React.useMemo(() => {
     const bookings = driverBookingsQuery.data?.bookings ?? [];
     const m = new Map<string, number>();
@@ -170,7 +175,7 @@ export function DriverRidesScreen() {
         </Card>
       ) : null}
 
-      {rides.length === 0 && !ridesQuery.isPending && !ridesQuery.isError ? (
+      {visibleRides.length === 0 && !ridesQuery.isPending && !ridesQuery.isError ? (
         <Card>
           <CardHeader>
             <CardTitle>No rides yet</CardTitle>
@@ -185,7 +190,7 @@ export function DriverRidesScreen() {
       ) : null}
 
       <div className="grid gap-3">
-        {rides.map((r) => (
+        {visibleRides.map((r) => (
           (() => {
             const activeTrip = activeTripByRideId.get(r.rideId);
             const confirmedCount = confirmedPassengersByRideId.get(r.rideId) ?? 0;

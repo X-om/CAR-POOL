@@ -234,12 +234,14 @@ export const tripService = {
   async getTrip(req: trip.GetTripRequest): Promise<trip.GetTripResponse> {
     const t = await tripRepository.getTrip(req.tripId);
     const passengerIds = await tripRepository.listTripPassengerIds(req.tripId);
+    const pickedUpPassengerIds = await tripRepository.listTripPickedUpPassengerIds(req.tripId);
     return {
       tripId: t.id,
       rideId: t.ride_id,
       driverId: t.driver_id,
       passengerIds,
       status: statusFromDb(t.trip_status),
+      pickedUpPassengerIds,
     };
   },
 
@@ -252,6 +254,7 @@ export const tripService = {
         driverId: t.driver_id,
         passengerIds: await tripRepository.listTripPassengerIds(t.id),
         status: statusFromDb(t.trip_status),
+        pickedUpPassengerIds: await tripRepository.listTripPickedUpPassengerIds(t.id),
       })),
     );
     return { trips: mapped };

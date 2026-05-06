@@ -113,4 +113,5 @@ export type Trip = {
   driverId: string;
   passengerIds: string[];
   status: number;
+  pickedUpPassengerIds: string[];
 };

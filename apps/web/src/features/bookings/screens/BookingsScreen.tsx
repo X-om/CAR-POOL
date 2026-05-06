@@ -16,17 +16,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cancelBooking, listBookings } from "@/features/bookings/api/bookingsApi";
 import { getSearchRide } from "@/features/search/api/searchApi";
-import { submitUserRating } from "@/features/users/api/ratingsApi";
 import { formatDateTime } from "@/lib/format/date";
 import { queryKeys } from "@/lib/query/keys";
 
@@ -142,7 +133,6 @@ function BookingCard(props: {
   cancelPending: boolean;
 }) {
   const { booking } = props;
-  const queryClient = useQueryClient();
 
   const rideQuery = useQuery({
     queryKey: queryKeys.searchRide(booking.rideId),
@@ -151,28 +141,6 @@ function BookingCard(props: {
 
   const ride = rideQuery.data;
   const status = bookingStatusLabel(booking.status);
-
-  const [rating, setRating] = React.useState<string>("5");
-  const [hasRated, setHasRated] = React.useState(false);
-
-  const ratingMutation = useMutation({
-    mutationFn: async (newRating: number) => {
-      if (!ride) throw new Error("Ride info not loaded yet");
-      return submitUserRating(ride.driverId, newRating);
-    },
-    onSuccess: async () => {
-      setHasRated(true);
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.searchRide(booking.rideId),
-      });
-      await queryClient.invalidateQueries({ queryKey: ["searchRides"] });
-      toast.success("Thanks for rating your driver");
-    },
-    onError: (e) => {
-      const message = e instanceof Error ? e.message : "Failed to submit rating";
-      toast.error(message);
-    },
-  });
 
   const canCancel = booking.status === 0 || booking.status === 1;
   const canViewRide = booking.status !== 3;
@@ -229,43 +197,6 @@ function BookingCard(props: {
       </CardHeader>
       <CardContent className="text-sm text-muted-foreground">
         {legText ? <p>Leg: {legText}</p> : <p>Loading ride info…</p>}
-
-        {booking.status === 3 && ride ? (
-          <div className="mt-4 grid gap-2 rounded-lg border p-3">
-            <p className="text-sm font-medium text-foreground">Rate driver</p>
-            <div className="flex flex-wrap items-end gap-2">
-              <div className="grid gap-1">
-                <Label className="text-xs">Rating (1–5)</Label>
-                <Select
-                  value={rating}
-                  onValueChange={(v) => setRating(v ?? "5")}
-                >
-                  <SelectTrigger className="w-[160px]">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5].map((v) => (
-                      <SelectItem key={v} value={String(v)}>
-                        {v}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button
-                onClick={() => ratingMutation.mutate(Number(rating))}
-                disabled={hasRated || ratingMutation.isPending}
-              >
-                {hasRated
-                  ? "Rated"
-                  : ratingMutation.isPending
-                    ? "Submitting…"
-                    : "Submit"}
-              </Button>
-            </div>
-          </div>
-        ) : null}
       </CardContent>
       <CardFooter className="justify-end gap-2">
         {canViewRide ? (

@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { searchRides, type SearchRidesParams } from "@/features/search/api/searchApi";
 import { formatDateTime } from "@/lib/format/date";
+import { getRouteThroughStops, type MapboxRoute } from "@/lib/mapbox/directions";
 import { geocodePlaces, type PlaceSuggestion } from "@/lib/mapbox/geocoding";
 import { queryKeys } from "@/lib/query/keys";
 
@@ -212,17 +213,99 @@ export function PassengerSearchScreen() {
   const canUseMapbox = Boolean(env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN);
   const routeBlue = themeColors?.route ?? "rgb(37, 99, 235)";
 
+  const [fullRoutedByRideId, setFullRoutedByRideId] = React.useState<
+    Record<string, MapboxRoute | null>
+  >({});
+  const [legRoutedByKey, setLegRoutedByKey] = React.useState<
+    Record<string, MapboxRoute | null>
+  >({});
+  const routeGenRef = React.useRef(0);
+
   const originSuggestions = useCitySuggestions(originQuery, canUseMapbox && originOpen);
   const destinationSuggestions = useCitySuggestions(
     destinationQuery,
     canUseMapbox && destinationOpen
   );
 
+  // Fetch routed polylines for each ride (prevents straight-line segments).
+  React.useEffect(() => {
+    if (!canUseMapbox || rides.length === 0) {
+      setFullRoutedByRideId({});
+      setLegRoutedByKey({});
+      return;
+    }
+
+    routeGenRef.current += 1;
+    const generation = routeGenRef.current;
+
+    void (async () => {
+      const fullEntries = await Promise.all(
+        rides.map(async (ride) => {
+          const sortedStops = ride.routeStops
+            .slice()
+            .sort((a, b) => a.stopOrder - b.stopOrder);
+
+          if (sortedStops.length < 2) return [ride.rideId, null] as const;
+
+          try {
+            const route = await getRouteThroughStops({
+              stops: sortedStops.map((s) => ({ lat: s.latitude, lng: s.longitude })),
+            });
+            return [ride.rideId, route] as const;
+          } catch {
+            return [ride.rideId, null] as const;
+          }
+        })
+      );
+
+      const legEntries = await Promise.all(
+        rides.map(async (ride) => {
+          const sortedStops = ride.routeStops
+            .slice()
+            .sort((a, b) => a.stopOrder - b.stopOrder);
+
+          const from = Math.min(ride.pickupStopOrder, ride.dropoffStopOrder);
+          const to = Math.max(ride.pickupStopOrder, ride.dropoffStopOrder);
+          const key = `${ride.rideId}:${from}:${to}`;
+
+          const segmentStops = sortedStops.filter(
+            (s) => s.stopOrder >= from && s.stopOrder <= to
+          );
+
+          if (segmentStops.length < 2) return [key, null] as const;
+
+          try {
+            const route = await getRouteThroughStops({
+              stops: segmentStops.map((s) => ({ lat: s.latitude, lng: s.longitude })),
+            });
+            return [key, route] as const;
+          } catch {
+            return [key, null] as const;
+          }
+        })
+      );
+
+      if (routeGenRef.current !== generation) return;
+
+      const nextFull: Record<string, MapboxRoute | null> = {};
+      for (const [rideId, route] of fullEntries) nextFull[rideId] = route;
+
+      const nextLeg: Record<string, MapboxRoute | null> = {};
+      for (const [key, route] of legEntries) nextLeg[key] = route;
+
+      setFullRoutedByRideId(nextFull);
+      setLegRoutedByKey(nextLeg);
+    })();
+  }, [canUseMapbox, rides]);
+
   const fullRouteFeatures: Array<Feature<LineString>> = rides.flatMap((ride) => {
-    const coords = ride.routeStops
-      .slice()
-      .sort((a, b) => a.stopOrder - b.stopOrder)
-      .map((s) => [s.longitude, s.latitude] as [number, number]);
+    const routed = fullRoutedByRideId[ride.rideId];
+    const coords =
+      routed?.geometry.coordinates ??
+      ride.routeStops
+        .slice()
+        .sort((a, b) => a.stopOrder - b.stopOrder)
+        .map((s) => [s.longitude, s.latitude] as [number, number]);
     if (coords.length < 2) return [];
     return [
       {
@@ -237,9 +320,13 @@ export function PassengerSearchScreen() {
     const sorted = ride.routeStops.slice().sort((a, b) => a.stopOrder - b.stopOrder);
     const from = Math.min(ride.pickupStopOrder, ride.dropoffStopOrder);
     const to = Math.max(ride.pickupStopOrder, ride.dropoffStopOrder);
-    const coords = sorted
-      .filter((s) => s.stopOrder >= from && s.stopOrder <= to)
-      .map((s) => [s.longitude, s.latitude] as [number, number]);
+    const key = `${ride.rideId}:${from}:${to}`;
+    const routed = legRoutedByKey[key];
+    const coords =
+      routed?.geometry.coordinates ??
+      sorted
+        .filter((s) => s.stopOrder >= from && s.stopOrder <= to)
+        .map((s) => [s.longitude, s.latitude] as [number, number]);
     if (coords.length < 2) return [];
     return [
       {
@@ -263,9 +350,13 @@ export function PassengerSearchScreen() {
     if (!canUseMapbox) return;
     if (!rides.length) return;
 
-    const coords = rides.flatMap((r) =>
-      r.routeStops.map((s) => [s.longitude, s.latitude] as [number, number])
-    );
+    const coords = rides.flatMap((r) => {
+      const routed = fullRoutedByRideId[r.rideId];
+      return (
+        routed?.geometry.coordinates ??
+        r.routeStops.map((s) => [s.longitude, s.latitude] as [number, number])
+      );
+    });
     if (coords.length < 2) return;
 
     const map = mapRef.current?.getMap();
@@ -283,7 +374,7 @@ export function PassengerSearchScreen() {
     } catch {
       // ignore
     }
-  }, [canUseMapbox, rides]);
+  }, [canUseMapbox, rides, fullRoutedByRideId]);
 
   return (
     <div className="grid gap-6">
@@ -292,7 +383,7 @@ export function PassengerSearchScreen() {
         description="Search by origin/destination city and seat count."
       />
 
-      <Card>
+      <Card className="overflow-visible">
         <CardHeader>
           <CardTitle>Search</CardTitle>
           <CardDescription>
@@ -323,7 +414,7 @@ export function PassengerSearchScreen() {
                   />
 
                   {originOpen && originSuggestions.items.length ? (
-                    <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border bg-card">
+                    <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border bg-card">
                       {originSuggestions.items.map((s) => (
                         <button
                           key={`${s.lng},${s.lat},${s.placeName}`}
@@ -372,7 +463,7 @@ export function PassengerSearchScreen() {
                   />
 
                   {destinationOpen && destinationSuggestions.items.length ? (
-                    <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border bg-card">
+                    <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border bg-card">
                       {destinationSuggestions.items.map((s) => (
                         <button
                           key={`${s.lng},${s.lat},${s.placeName}`}

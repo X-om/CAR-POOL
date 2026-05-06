@@ -1,26 +1,62 @@
-<div style="font-family: Arial, sans-serif; line-height: 1.5;">
-  <h2>Booking rejected</h2>
-  <p>Your booking request was rejected.</p>
-  <ul>
-    <li><strong>Booking ID:</strong> {{bookingId}}</li>
-    <li><strong>Ride ID:</strong> {{rideId}}</li>
-    <li><strong>Driver ID:</strong> {{driverId}}</li>
-    <li><strong>Seats:</strong> {{seatCount}}</li>
-    {{#if sourceCity}}<li><strong>From:</strong> {{sourceCity}}</li>{{/if}}
-    {{#if destinationCity}}<li><strong>To:</strong> {{destinationCity}}</li>{{/if}}
-    {{#if departureTime}}<li><strong>Departure:</strong> {{departureTime}}</li>{{/if}}
-  </ul>
-</div>
-<div style="font-family: Arial, sans-serif; line-height: 1.5;">
-  <h2>Booking rejected</h2>
-  <p>Your booking request was rejected.</p>
-  <ul>
-    <li><strong>Booking ID:</strong> {{bookingId}}</li>
-    <li><strong>Ride ID:</strong> {{rideId}}</li>
-    <li><strong>Driver ID:</strong> {{driverId}}</li>
-    <li><strong>Seats:</strong> {{seatCount}}</li>
-    {{#if sourceCity}}<li><strong>From:</strong> {{sourceCity}}</li>{{/if}}
-    {{#if destinationCity}}<li><strong>To:</strong> {{destinationCity}}</li>{{/if}}
-    {{#if departureTime}}<li><strong>Departure:</strong> {{departureTime}}</li>{{/if}}
-  </ul>
-</div>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Booking rejected</title>
+  </head>
+  <body style="margin: 0; padding: 0; background-color: #f7f8fc;">
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="padding: 30px 0;">
+      <tr>
+        <td align="center">
+          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="width: 100%; max-width: 600px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);">
+            <tr>
+              <td align="center" style="padding: 30px 20px; background: linear-gradient(135deg, #6C5CE7 0%, #A363D9 100%);">
+                {{#if logoSrc}}
+                  <img src="{{logoSrc}}" alt="{{#if appName}}{{appName}}{{else}}RideLink{{/if}} Logo" style="max-width: 170px; display: block; margin: 0 auto;" />
+                {{else}}
+                  <div style="font-family: Arial, sans-serif; font-size: 34px; font-weight: 700; color: #ffffff; line-height: 1;">{{#if appName}}{{appName}}{{else}}RideLink{{/if}}</div>
+                {{/if}}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 35px 25px; font-family: Arial, sans-serif;">
+                <div style="font-size: 24px; font-weight: 700; color: #222222; margin-bottom: 20px; text-align: center;">Booking rejected</div>
+                <p style="font-size: 16px; line-height: 1.6; color: #444444; margin: 0 0 16px;">Your booking request was rejected.</p>
+                <div style="background-color: #f5f3ff; border-left: 5px solid #6C5CE7; padding: 16px; border-radius: 8px; margin: 20px 0;">
+                  <ul style="margin: 0; padding-left: 18px; color: #333333; font-size: 15px;">
+                    <li><strong>Booking ID:</strong> {{bookingId}}</li>
+                    <li><strong>Ride ID:</strong> {{rideId}}</li>
+                    <li><strong>Driver ID:</strong> {{driverId}}</li>
+                    <li><strong>Seats:</strong> {{seatCount}}</li>
+                    {{#if sourceCity}}<li><strong>From:</strong> {{sourceCity}}</li>{{/if}}
+                    {{#if destinationCity}}<li><strong>To:</strong> {{destinationCity}}</li>{{/if}}
+                    {{#if departureTime}}<li><strong>Departure:</strong> {{departureTime}}</li>{{/if}}
+                  </ul>
+                </div>
+                <p style="font-size: 16px; line-height: 1.6; color: #444444; margin-top: 30px; text-align: center;">
+                  Warm regards,<br />
+                  <strong>The RideLink Team</strong>
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="background-color: #f0f0f0; padding: 20px; text-align: center; font-family: Arial, sans-serif; font-size: 14px; color: #777777;">
+                <p style="margin: 0;">
+                  <a href="{{#if helpLink}}{{helpLink}}{{else}}#{{/if}}" style="color: #6C5CE7; text-decoration: none; font-weight: 500;">Help Center</a> |
+                  <a href="{{#if privacyLink}}{{privacyLink}}{{else}}#{{/if}}" style="color: #6C5CE7; text-decoration: none; font-weight: 500;">Privacy Policy</a> |
+                  <a href="{{#if termsLink}}{{termsLink}}{{else}}#{{/if}}" style="color: #6C5CE7; text-decoration: none; font-weight: 500;">Terms</a>
+                </p>
+                <p style="margin: 10px 0 0; font-size: 13px; line-height: 1.5;">
+                  © {{#if appName}}{{appName}}{{else}}RideLink{{/if}}. All rights reserved.<br />
+                  {{#if companyAddress}}{{companyAddress}}{{else}}India{{/if}}
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

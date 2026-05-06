@@ -643,7 +643,7 @@ export function PublishRideScreen() {
         </Card>
       ) : null}
 
-      <Card>
+      <Card className="overflow-visible">
         <CardHeader>
           <CardTitle>Ride info</CardTitle>
           <CardDescription>Used for pricing and publishing.</CardDescription>
@@ -706,7 +706,7 @@ export function PublishRideScreen() {
                   />
 
                   {sourceOpen && sourceSuggestions.items.length ? (
-                    <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border bg-card">
+                    <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border bg-card">
                       {sourceSuggestions.items.map((s) => (
                         <button
                           key={`${s.lng},${s.lat},${s.placeName}`}
@@ -754,7 +754,7 @@ export function PublishRideScreen() {
                   />
 
                   {destinationOpen && destinationSuggestions.items.length ? (
-                    <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border bg-card">
+                    <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border bg-card">
                       {destinationSuggestions.items.map((s) => (
                         <button
                           key={`${s.lng},${s.lat},${s.placeName}`}

@@ -1,4 +1,6 @@
 import nodemailer from "nodemailer";
+import fs from "node:fs";
+import path from "node:path";
 import {
   createKafkaClient,
   createAndConnectConsumer,
@@ -15,6 +17,9 @@ import {
   SMTP_PORT,
   SMTP_SECURE,
   SMTP_USER,
+  MAILER_APP_NAME,
+  MAILER_LOGO_PATH,
+  REPO_ROOT,
 } from "./env";
 
 const transporter = nodemailer.createTransport({
@@ -67,12 +72,24 @@ async function main(): Promise<void> {
         let lastErr: unknown = null;
         for (let attempt = baseAttempt; attempt < maxAttempts; attempt++) {
           try {
+            const resolvedLogoPath = MAILER_LOGO_PATH
+              ? path.isAbsolute(MAILER_LOGO_PATH)
+                ? MAILER_LOGO_PATH
+                : path.resolve(REPO_ROOT, MAILER_LOGO_PATH)
+              : undefined;
+
+            const logoPath = resolvedLogoPath && fs.existsSync(resolvedLogoPath) ? resolvedLogoPath : undefined;
+
             const rendered = await renderEmail({
               // renderEmail is strongly typed by templateId at compile time,
               // but jobs are runtime data; we validate templateId with zod.
               templateId: job.templateId,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              templateVariables: job.templateVariables as any,
+              templateVariables: {
+                ...(job.templateVariables as any),
+                appName: MAILER_APP_NAME,
+                logoSrc: logoPath ? "cid:ridelink-logo" : undefined,
+              } as any,
             });
 
             await transporter.sendMail({
@@ -81,6 +98,15 @@ async function main(): Promise<void> {
               subject: rendered.subject,
               text: rendered.text,
               html: rendered.html,
+              attachments: logoPath
+                ? [
+                    {
+                      filename: path.basename(logoPath),
+                      path: logoPath,
+                      cid: "ridelink-logo",
+                    },
+                  ]
+                : undefined,
             });
 
             // eslint-disable-next-line no-console

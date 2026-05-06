@@ -119,6 +119,12 @@ export const searchRepository = {
       JOIN ride_stops s1 ON s1.ride_id = r.id
       JOIN ride_stops s2 ON s2.ride_id = r.id AND s2.stop_order > s1.stop_order
       WHERE r.ride_status = 'ACTIVE'
+        AND NOT EXISTS (
+          SELECT 1
+          FROM trips t
+          WHERE t.ride_id = r.id
+            AND t.trip_status IN ('STARTED', 'IN_PROGRESS')
+        )
         AND r.departure_time BETWEEN $1 AND $2
         AND s1.latitude BETWEEN $3 AND $4
         AND s1.longitude BETWEEN $5 AND $6
@@ -170,6 +176,12 @@ export const searchRepository = {
         ride_status
       FROM rides
       WHERE ride_status = 'ACTIVE'
+        AND NOT EXISTS (
+          SELECT 1
+          FROM trips t
+          WHERE t.ride_id = rides.id
+            AND t.trip_status IN ('STARTED', 'IN_PROGRESS')
+        )
         AND available_seats >= $1
         AND departure_time BETWEEN $2 AND $3
         AND source_lat IS NOT NULL AND source_lng IS NOT NULL

@@ -60,9 +60,14 @@ export function TripDetailScreen({ tripId }: { tripId: string }) {
 
   const pickupMutation = useMutation({
     mutationFn: pickupPassenger,
-    onSuccess: async () => {
+    onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.trip(tripId) });
       await queryClient.invalidateQueries({ queryKey: queryKeys.trips });
+
+      if (!data.success) {
+        toast.error("Passenger was already picked up");
+        return;
+      }
       toast.success("Passenger picked up");
     },
   });
@@ -137,8 +142,9 @@ export function TripDetailScreen({ tripId }: { tripId: string }) {
                     <PassengerRow
                       key={pid}
                       passengerId={pid}
-                      canPickup={canAct}
+                      canPickup={canAct && !trip.pickedUpPassengerIds.includes(pid)}
                       pickupPending={pickupMutation.isPending}
+                      alreadyPicked={trip.pickedUpPassengerIds.includes(pid)}
                       onPickup={() =>
                         pickupMutation.mutate({ tripId: trip.tripId, passengerId: pid })
                       }
@@ -175,6 +181,7 @@ function PassengerRow(props: {
   passengerId: string;
   canPickup: boolean;
   pickupPending: boolean;
+  alreadyPicked: boolean;
   onPickup: () => void;
 }) {
   const profileQuery = useQuery({
@@ -192,7 +199,9 @@ function PassengerRow(props: {
         {city ? <div className="text-xs text-muted-foreground">{city}</div> : null}
       </div>
 
-      {props.canPickup ? (
+      {props.alreadyPicked ? (
+        <Badge variant="secondary">Picked up</Badge>
+      ) : props.canPickup ? (
         <Button
           variant="outline"
           onClick={props.onPickup}

@@ -71,6 +71,7 @@ export const tripRepository = {
       UPDATE trip_passengers
       SET pickup_status = 'PICKED_UP'
       WHERE trip_id = $1 AND passenger_id = $2
+        AND pickup_status <> 'PICKED_UP'
       `,
       [input.tripId, input.passengerId],
     );
@@ -200,6 +201,19 @@ export const tripRepository = {
       SELECT passenger_id
       FROM trip_passengers
       WHERE trip_id = $1
+      ORDER BY id ASC
+      `,
+      [tripId],
+    );
+    return res.rows.map((r) => r.passenger_id);
+  },
+
+  async listTripPickedUpPassengerIds(tripId: string): Promise<string[]> {
+    const res = await db.query<{ passenger_id: string }>(
+      `
+      SELECT passenger_id
+      FROM trip_passengers
+      WHERE trip_id = $1 AND pickup_status = 'PICKED_UP'
       ORDER BY id ASC
       `,
       [tripId],

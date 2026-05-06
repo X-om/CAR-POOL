@@ -19,7 +19,11 @@ import {
   listNotifications,
   markNotificationRead,
 } from "@/features/notifications/api/notificationsApi";
-import { approveBooking, rejectBooking } from "@/features/bookings/api/bookingsApi";
+import {
+  approveBooking,
+  listDriverBookings,
+  rejectBooking,
+} from "@/features/bookings/api/bookingsApi";
 import { listDriverRides } from "@/features/rides/api/ridesApi";
 import { formatDateTime } from "@/lib/format/date";
 import { queryKeys } from "@/lib/query/keys";
@@ -110,6 +114,20 @@ export function NotificationsScreen() {
     enabled: bookingRequestedRideIds.length > 0,
   });
 
+  const driverBookingsQuery = useQuery({
+    queryKey: ["driverBookings"],
+    queryFn: listDriverBookings,
+    enabled: bookingRequestedByNotificationId.size > 0,
+  });
+
+  const bookingStatusById = React.useMemo(() => {
+    const m = new Map<string, number>();
+    for (const booking of driverBookingsQuery.data?.bookings ?? []) {
+      m.set(booking.bookingId, booking.status);
+    }
+    return m;
+  }, [driverBookingsQuery.data?.bookings]);
+
   const rideApprovalModeById = React.useMemo(() => {
     const m = new Map<string, number>();
     const rides = driverRidesQuery.data?.rides ?? [];
@@ -178,8 +196,9 @@ export function NotificationsScreen() {
                   payload?.rideId != null
                     ? rideApprovalModeById.get(payload.rideId) === 1
                     : false;
+                const isPending = payload ? bookingStatusById.get(payload.bookingId) === 0 : false;
 
-                if (!payload || !isManual) return null;
+                if (!payload || !isManual || !isPending) return null;
 
                 return (
                   <>

@@ -13,6 +13,8 @@ const repoRoot =
       ? path.resolve(__dirname, "..", "..", "..")
       : path.resolve(process.cwd());
 
+export const REPO_ROOT = repoRoot;
+
 const envCandidates = [
   path.join(repoRoot, "env.local"),
   path.join(repoRoot, ".env.local"),
@@ -48,6 +50,10 @@ const EnvSchema = z.object({
   SMTP_SECURE: BoolSchema.default(false),
   SMTP_USER: z.string().min(1).optional(),
   SMTP_PASS: z.string().min(1).optional(),
+
+  // Optional CID logo embedding
+  MAILER_LOGO_PATH: z.string().min(1).optional(),
+  MAILER_APP_NAME: z.string().min(1).optional(),
 });
 
 const parsed = EnvSchema.safeParse(process.env);
@@ -65,3 +71,6 @@ export const SMTP_PORT = parsed.data.SMTP_PORT;
 export const SMTP_SECURE = parsed.data.SMTP_SECURE;
 export const SMTP_USER = parsed.data.SMTP_USER;
 export const SMTP_PASS = parsed.data.SMTP_PASS;
+
+export const MAILER_LOGO_PATH = parsed.data.MAILER_LOGO_PATH;
+export const MAILER_APP_NAME = parsed.data.MAILER_APP_NAME;
