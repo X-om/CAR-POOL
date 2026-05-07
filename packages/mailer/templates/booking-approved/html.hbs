@@ -3,64 +3,126 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>Booking confirmed</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@600;700&display=swap" rel="stylesheet" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body, html { background-color: #f0f0ec; font-family: 'DM Sans', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+      a { text-decoration: none; color: inherit; }
+      img { display: block; border: 0; }
+
+      .email-outer { background-color: #f0f0ec; padding: 40px 20px; }
+      .email-card { max-width: 620px; margin: 0 auto; background: #ffffff; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 24px rgba(0,0,0,0.07); }
+
+      .banner-header { background-color: #0a0a0a; padding: 40px 30px 36px; text-align: center; position: relative; overflow: hidden; }
+      .banner-header::before { content: ''; position: absolute; top: -60px; left: 50%; transform: translateX(-50%); width: 380px; height: 180px; background: radial-gradient(ellipse, rgba(255,255,255,0.05) 0%, transparent 70%); pointer-events: none; }
+      .banner-lines { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-image: linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; }
+      .logo-wrap { position: relative; z-index: 1; display: inline-block; }
+      .logo-wrap img { width: 110px; height: 110px; border-radius: 50%; margin: 0 auto 18px; border: 2px solid rgba(255,255,255,0.08); object-fit: cover; }
+      .banner-tagline { position: relative; z-index: 1; font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 4px; text-transform: uppercase; color: rgba(255,255,255,0.35); }
+
+      .email-body { padding: 44px 44px 36px; color: #1a1a1a; }
+      .greeting { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; color: #0a0a0a; margin-bottom: 16px; line-height: 1.3; }
+      .divider-accent { width: 36px; height: 3px; background: #0a0a0a; border-radius: 2px; margin-bottom: 24px; }
+      .body-text { font-size: 15px; line-height: 1.75; color: #444; margin-bottom: 20px; }
+      .body-text strong { color: #0a0a0a; font-weight: 600; }
+
+      .info-box { background: #f7f7f4; border-left: 3px solid #0a0a0a; border-radius: 2px; padding: 18px 22px; margin: 28px 0; }
+      .info-box p { font-size: 14px; line-height: 1.7; color: #555; }
+      .info-box p strong { display: block; font-family: 'Syne', sans-serif; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: #0a0a0a; margin-bottom: 6px; }
+
+      .sign-off { margin-top: 30px; padding-top: 28px; border-top: 1px solid #eee; }
+      .sign-off p { font-size: 14px; color: #666; line-height: 1.6; }
+      .sign-off .sig-name { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: #0a0a0a; margin-top: 12px; }
+      .sign-off .sig-title { font-size: 12px; color: #999; letter-spacing: 0.5px; }
+
+      .email-footer { background-color: #0a0a0a; padding: 30px 44px; text-align: center; }
+      .footer-logo-text { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: #ffffff; letter-spacing: 1px; margin-bottom: 6px; }
+      .footer-tagline { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 22px; }
+      .footer-links { margin-bottom: 20px; }
+      .footer-links a { font-size: 12px; color: rgba(255,255,255,0.5); margin: 0 12px; letter-spacing: 0.5px; }
+      .footer-divider { width: 40px; height: 1px; background: rgba(255,255,255,0.12); margin: 0 auto 18px; }
+      .footer-address { font-size: 11px; color: rgba(255,255,255,0.25); line-height: 1.6; margin-bottom: 14px; }
+      .footer-unsub { font-size: 10px; color: rgba(255,255,255,0.2); }
+      .footer-unsub a { color: rgba(255,255,255,0.35); text-decoration: underline; }
+
+      @media (max-width: 480px) {
+        .email-outer { padding: 0; }
+        .email-card { border-radius: 0; box-shadow: none; }
+        .email-body { padding: 30px 24px; }
+        .email-footer { padding: 28px 24px; }
+        .banner-header { padding: 32px 20px 28px; }
+      }
+    </style>
   </head>
-  <body style="margin: 0; padding: 0; background-color: #f7f8fc;">
-    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="padding: 30px 0;">
-      <tr>
-        <td align="center">
-          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="width: 100%; max-width: 600px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);">
-            <tr>
-              <td align="center" style="padding: 30px 20px; background: linear-gradient(135deg, #6C5CE7 0%, #A363D9 100%);">
-                {{#if logoSrc}}
-                  <img src="{{logoSrc}}" alt="{{#if appName}}{{appName}}{{else}}RideLink{{/if}} Logo" style="max-width: 170px; display: block; margin: 0 auto;" />
-                {{else}}
-                  <div style="font-family: Arial, sans-serif; font-size: 34px; font-weight: 700; color: #ffffff; line-height: 1;">{{#if appName}}{{appName}}{{else}}RideLink{{/if}}</div>
-                {{/if}}
-              </td>
-            </tr>
+  <body>
+    <div class="email-outer">
+      <div class="email-card">
+        <div class="banner-header">
+          <div class="banner-lines"></div>
+          <div class="logo-wrap">
+            {{#if logoSrc}}
+              <img src="{{logoSrc}}" alt="RideLink Logo" />
+            {{else}}
+              <img src="" alt="RideLink Logo" style="display:none;" />
+            {{/if}}
+            <div class="banner-tagline">Share A Ride</div>
+          </div>
+        </div>
 
-            <tr>
-              <td style="padding: 35px 25px; font-family: Arial, sans-serif;">
-                <div style="font-size: 24px; font-weight: 700; color: #222222; margin-bottom: 20px; text-align: center;">Booking confirmed</div>
-                <p style="font-size: 16px; line-height: 1.6; color: #444444; margin: 0 0 16px;">Your booking has been approved and confirmed.</p>
+        <div class="email-body">
+          <h1 class="greeting">Booking confirmed</h1>
+          <div class="divider-accent"></div>
 
-                <div style="background-color: #f5f3ff; border-left: 5px solid #6C5CE7; padding: 16px; border-radius: 8px; margin: 20px 0;">
-                  <ul style="margin: 0; padding-left: 18px; color: #333333; font-size: 15px;">
-                    <li><strong>Booking ID:</strong> {{bookingId}}</li>
-                    <li><strong>Ride ID:</strong> {{rideId}}</li>
-                    <li><strong>Driver ID:</strong> {{driverId}}</li>
-                    <li><strong>Seats:</strong> {{seatCount}}</li>
-                    {{#if sourceCity}}<li><strong>From:</strong> {{sourceCity}}</li>{{/if}}
-                    {{#if destinationCity}}<li><strong>To:</strong> {{destinationCity}}</li>{{/if}}
-                    {{#if departureTime}}<li><strong>Departure:</strong> {{departureTime}}</li>{{/if}}
-                  </ul>
-                </div>
+          <p class="body-text">Your booking has been approved and confirmed.</p>
 
-                <p style="font-size: 16px; line-height: 1.6; color: #444444; margin-top: 30px; text-align: center;">
-                  Warm regards,<br />
-                  <strong>The RideLink Team</strong>
-                </p>
-              </td>
-            </tr>
+          <div class="info-box">
+            <p>
+              <strong>Details</strong>
+              Booking ID: <strong>{{bookingId}}</strong><br />
+              Ride ID: <strong>{{rideId}}</strong><br />
+              Driver ID: {{driverId}}<br />
+              Seats: {{seatCount}}<br />
+              {{#if sourceCity}}From: {{sourceCity}}<br />{{/if}}
+              {{#if destinationCity}}To: {{destinationCity}}<br />{{/if}}
+              {{#if departureTime}}Date &amp; Time: {{departureTime}}<br />{{/if}}
+            </p>
+          </div>
 
-            <tr>
-              <td style="background-color: #f0f0f0; padding: 20px; text-align: center; font-family: Arial, sans-serif; font-size: 14px; color: #777777;">
-                <p style="margin: 0;">
-                  <a href="{{#if helpLink}}{{helpLink}}{{else}}#{{/if}}" style="color: #6C5CE7; text-decoration: none; font-weight: 500;">Help Center</a> |
-                  <a href="{{#if privacyLink}}{{privacyLink}}{{else}}#{{/if}}" style="color: #6C5CE7; text-decoration: none; font-weight: 500;">Privacy Policy</a> |
-                  <a href="{{#if termsLink}}{{termsLink}}{{else}}#{{/if}}" style="color: #6C5CE7; text-decoration: none; font-weight: 500;">Terms</a>
-                </p>
-                <p style="margin: 10px 0 0; font-size: 13px; line-height: 1.5;">
-                  © {{#if appName}}{{appName}}{{else}}RideLink{{/if}}. All rights reserved.<br />
-                  {{#if companyAddress}}{{companyAddress}}{{else}}India{{/if}}
-                </p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
+          <div class="sign-off">
+            <p>Warm regards,</p>
+            <p class="sig-name">The RideLink Team</p>
+            <p class="sig-title">support@ridelink.com</p>
+          </div>
+        </div>
+
+        <div class="email-footer">
+          <div class="footer-logo-text">RideLink</div>
+          <div class="footer-tagline">Share A Ride</div>
+
+          <div class="footer-links">
+            <a href="#">Help Center</a>
+            <a href="#">Privacy Policy</a>
+            <a href="#">Terms of Service</a>
+            <a href="#">Download App</a>
+          </div>
+
+          <div class="footer-divider"></div>
+
+          <div class="footer-address">
+            RideLink Technologies Pvt. Ltd.<br />
+            301, Baner Business Bay, Baner Road, Pune 411045<br />
+            Pune, Maharashtra, India
+          </div>
+
+          <div class="footer-unsub">
+            You received this email because you have an account with RideLink.<br />
+            <a href="#">Unsubscribe</a> &nbsp;·&nbsp;
+            <a href="#">Email Preferences</a>
+          </div>
+        </div>
+      </div>
+    </div>
   </body>
 </html>
