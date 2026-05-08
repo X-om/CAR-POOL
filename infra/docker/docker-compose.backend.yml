@@ -1,10 +1,16 @@
+version: '3.8'
+
 x-node-image: &node_image
-  image: carpool-node:dev
   build:
     context: ../..
     dockerfile: infra/docker/Dockerfile.services
+    args:
+      NODE_ENV: production
 
 services:
+  # ============================================
+  # Core Infrastructure
+  # ============================================
   postgres:
     image: postgres:16-alpine
     container_name: carpool-postgres
@@ -22,6 +28,8 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
+    networks:
+      - carpool-net
 
   redis:
     image: redis:7-alpine
@@ -34,6 +42,8 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
+    networks:
+      - carpool-net
 
   redpanda:
     image: redpandadata/redpanda:v24.3.9
@@ -65,99 +75,117 @@ services:
       interval: 5s
       timeout: 5s
       retries: 30
+    networks:
+      - carpool-net
 
-  # ---- App stack (profile) ----
+  # ============================================
+  # Database Migrations
+  # ============================================
   db-migrate:
-    profiles: ["app"]
     <<: *node_image
+    container_name: carpool-db-migrate
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
+      DATABASE_URL: postgres://carpool:carpool@postgres:5432/carpool
+      NODE_ENV: production
     command: ["pnpm", "--filter", "@repo/database", "migrate"]
     restart: "no"
+    networks:
+      - carpool-net
 
-  mailpit:
-    profiles: ["app"]
-    image: axllent/mailpit:v1.23
-    ports:
-      - "8025:8025"
-      - "1025:1025"
-    restart: unless-stopped
-
+  # ============================================
+  # Core Backend Services (gRPC)
+  # ============================================
   user-service:
-    profiles: ["app"]
     <<: *node_image
+    container_name: carpool-user-service
     depends_on:
       db-migrate:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
+      DATABASE_URL: postgres://carpool:carpool@postgres:5432/carpool
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-32chars-minimum!!}
       INTERNAL_JWT_SECRET: ${INTERNAL_JWT_SECRET:-dev-internal-jwt-secret-32chars!!}
-      KAFKA_BROKERS: ${KAFKA_BROKERS:-redpanda:9092}
+      KAFKA_BROKERS: redpanda:9092
       USER_SERVICE_GRPC_PORT: 50051
+      NODE_ENV: production
     command: ["pnpm", "--filter", "user-service", "exec", "tsx", "src/server.ts"]
     ports:
       - "50051:50051"
     restart: unless-stopped
+    networks:
+      - carpool-net
 
   vehicle-service:
-    profiles: ["app"]
     <<: *node_image
+    container_name: carpool-vehicle-service
     depends_on:
       db-migrate:
         condition: service_completed_successfully
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
+      DATABASE_URL: postgres://carpool:carpool@postgres:5432/carpool
       INTERNAL_JWT_SECRET: ${INTERNAL_JWT_SECRET:-dev-internal-jwt-secret-32chars!!}
       VEHICLE_SERVICE_GRPC_PORT: 50052
+      NODE_ENV: production
     command: ["pnpm", "--filter", "vehicle-service", "exec", "tsx", "src/server.ts"]
     ports:
       - "50052:50052"
     restart: unless-stopped
+    networks:
+      - carpool-net
 
   ride-service:
-    profiles: ["app"]
     <<: *node_image
+    container_name: carpool-ride-service
     depends_on:
       user-service:
         condition: service_started
       db-migrate:
         condition: service_completed_successfully
+      redpanda:
+        condition: service_healthy
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
+      DATABASE_URL: postgres://carpool:carpool@postgres:5432/carpool
       INTERNAL_JWT_SECRET: ${INTERNAL_JWT_SECRET:-dev-internal-jwt-secret-32chars!!}
-      KAFKA_BROKERS: ${KAFKA_BROKERS:-redpanda:9092}
+      KAFKA_BROKERS: redpanda:9092
       RIDE_SERVICE_GRPC_PORT: 50053
       USER_SERVICE_GRPC_ADDR: user-service:50051
+      NODE_ENV: production
     command: ["pnpm", "--filter", "ride-service", "exec", "tsx", "src/server.ts"]
     ports:
       - "50053:50053"
     restart: unless-stopped
+    networks:
+      - carpool-net
 
   search-service:
-    profiles: ["app"]
     <<: *node_image
+    container_name: carpool-search-service
     depends_on:
       user-service:
         condition: service_started
       db-migrate:
         condition: service_completed_successfully
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
+      DATABASE_URL: postgres://carpool:carpool@postgres:5432/carpool
       INTERNAL_JWT_SECRET: ${INTERNAL_JWT_SECRET:-dev-internal-jwt-secret-32chars!!}
       SEARCH_SERVICE_GRPC_PORT: 50054
       USER_SERVICE_GRPC_ADDR: user-service:50051
+      NODE_ENV: production
     command: ["pnpm", "--filter", "search-service", "exec", "tsx", "src/server.ts"]
     ports:
       - "50054:50054"
     restart: unless-stopped
+    networks:
+      - carpool-net
 
   booking-service:
-    profiles: ["app"]
     <<: *node_image
+    container_name: carpool-booking-service
     depends_on:
       user-service:
         condition: service_started
@@ -165,40 +193,50 @@ services:
         condition: service_started
       db-migrate:
         condition: service_completed_successfully
+      redpanda:
+        condition: service_healthy
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
+      DATABASE_URL: postgres://carpool:carpool@postgres:5432/carpool
       INTERNAL_JWT_SECRET: ${INTERNAL_JWT_SECRET:-dev-internal-jwt-secret-32chars!!}
-      KAFKA_BROKERS: ${KAFKA_BROKERS:-redpanda:9092}
+      KAFKA_BROKERS: redpanda:9092
       BOOKING_SERVICE_GRPC_PORT: 50055
       USER_SERVICE_GRPC_ADDR: user-service:50051
       RIDE_SERVICE_GRPC_ADDR: ride-service:50053
+      NODE_ENV: production
     command: ["pnpm", "--filter", "booking-service", "exec", "tsx", "src/server.ts"]
     ports:
       - "50055:50055"
     restart: unless-stopped
+    networks:
+      - carpool-net
 
   trip-service:
-    profiles: ["app"]
     <<: *node_image
+    container_name: carpool-trip-service
     depends_on:
       user-service:
         condition: service_started
       db-migrate:
         condition: service_completed_successfully
+      redpanda:
+        condition: service_healthy
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
+      DATABASE_URL: postgres://carpool:carpool@postgres:5432/carpool
       INTERNAL_JWT_SECRET: ${INTERNAL_JWT_SECRET:-dev-internal-jwt-secret-32chars!!}
-      KAFKA_BROKERS: ${KAFKA_BROKERS:-redpanda:9092}
+      KAFKA_BROKERS: redpanda:9092
       TRIP_SERVICE_GRPC_PORT: 50056
       USER_SERVICE_GRPC_ADDR: user-service:50051
+      NODE_ENV: production
     command: ["pnpm", "--filter", "trip-service", "exec", "tsx", "src/server.ts"]
     ports:
       - "50056:50056"
     restart: unless-stopped
+    networks:
+      - carpool-net
 
   notification-service:
-    profiles: ["app"]
     <<: *node_image
+    container_name: carpool-notification-service
     depends_on:
       db-migrate:
         condition: service_completed_successfully
@@ -207,19 +245,25 @@ services:
       redis:
         condition: service_healthy
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
+      DATABASE_URL: postgres://carpool:carpool@postgres:5432/carpool
       INTERNAL_JWT_SECRET: ${INTERNAL_JWT_SECRET:-dev-internal-jwt-secret-32chars!!}
       NOTIFICATION_SERVICE_GRPC_PORT: 50057
-      KAFKA_BROKERS: ${KAFKA_BROKERS:-redpanda:9092}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      KAFKA_BROKERS: redpanda:9092
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: production
     command: ["pnpm", "--filter", "notification-service", "exec", "tsx", "src/server.ts"]
     ports:
       - "50057:50057"
     restart: unless-stopped
+    networks:
+      - carpool-net
 
+  # ============================================
+  # API Gateways
+  # ============================================
   api-gateway:
-    profiles: ["app"]
     <<: *node_image
+    container_name: carpool-api-gateway
     depends_on:
       user-service:
         condition: service_started
@@ -238,7 +282,7 @@ services:
       redis:
         condition: service_healthy
     environment:
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-32chars-minimum!!}
       INTERNAL_JWT_SECRET: ${INTERNAL_JWT_SECRET:-dev-internal-jwt-secret-32chars!!}
       BACKEND_PORT: 3000
@@ -249,43 +293,55 @@ services:
       BOOKING_SERVICE_GRPC_ADDR: booking-service:50055
       TRIP_SERVICE_GRPC_ADDR: trip-service:50056
       NOTIFICATION_SERVICE_GRPC_ADDR: notification-service:50057
+      NODE_ENV: production
     command: ["pnpm", "--filter", "api-gateway", "exec", "tsx", "src/server.ts"]
     ports:
       - "3000:3000"
     restart: unless-stopped
+    networks:
+      - carpool-net
 
-  webSocket-gateway:
-    profiles: ["app"]
+  websocket-gateway:
     <<: *node_image
+    container_name: carpool-websocket-gateway
     depends_on:
       redis:
         condition: service_healthy
     environment:
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-32chars-minimum!!}
       WS_PORT: 3001
+      NODE_ENV: production
     command: ["pnpm", "--filter", "webSocket-gateway", "exec", "tsx", "src/server.ts"]
     ports:
       - "3001:3001"
     restart: unless-stopped
+    networks:
+      - carpool-net
 
+  # ============================================
+  # Background Workers
+  # ============================================
   outbox-publisher:
-    profiles: ["app"]
     <<: *node_image
+    container_name: carpool-outbox-publisher
     depends_on:
       db-migrate:
         condition: service_completed_successfully
       redpanda:
         condition: service_healthy
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
-      KAFKA_BROKERS: ${KAFKA_BROKERS:-redpanda:9092}
+      DATABASE_URL: postgres://carpool:carpool@postgres:5432/carpool
+      KAFKA_BROKERS: redpanda:9092
+      NODE_ENV: production
     command: ["pnpm", "--filter", "outbox-publisher", "exec", "tsx", "src/worker.ts"]
     restart: unless-stopped
+    networks:
+      - carpool-net
 
   notification-worker:
-    profiles: ["app"]
     <<: *node_image
+    container_name: carpool-notification-worker
     depends_on:
       db-migrate:
         condition: service_completed_successfully
@@ -294,16 +350,19 @@ services:
       redis:
         condition: service_healthy
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
-      KAFKA_BROKERS: ${KAFKA_BROKERS:-redpanda:9092}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-      NOTIFICATION_KAFKA_GROUP_ID: ${NOTIFICATION_KAFKA_GROUP_ID:-notification-service.docker}
+      DATABASE_URL: postgres://carpool:carpool@postgres:5432/carpool
+      KAFKA_BROKERS: redpanda:9092
+      REDIS_URL: redis://redis:6379
+      NOTIFICATION_KAFKA_GROUP_ID: ${NOTIFICATION_KAFKA_GROUP_ID:-notification-service.prod}
+      NODE_ENV: production
     command: ["pnpm", "--filter", "notification-service", "exec", "tsx", "src/worker.ts"]
     restart: unless-stopped
+    networks:
+      - carpool-net
 
   reminder-worker:
-    profiles: ["app"]
     <<: *node_image
+    container_name: carpool-reminder-worker
     depends_on:
       db-migrate:
         condition: service_completed_successfully
@@ -312,29 +371,42 @@ services:
       user-service:
         condition: service_started
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgres://carpool:carpool@postgres:5432/carpool}
-      KAFKA_BROKERS: ${KAFKA_BROKERS:-redpanda:9092}
+      DATABASE_URL: postgres://carpool:carpool@postgres:5432/carpool
+      KAFKA_BROKERS: redpanda:9092
       USER_SERVICE_GRPC_ADDR: user-service:50051
       INTERNAL_JWT_SECRET: ${INTERNAL_JWT_SECRET:-dev-internal-jwt-secret-32chars!!}
+      NODE_ENV: production
     command: ["pnpm", "--filter", "reminder-worker", "exec", "tsx", "src/worker.ts"]
     restart: unless-stopped
+    networks:
+      - carpool-net
 
   mailer-worker:
-    profiles: ["app"]
     <<: *node_image
+    container_name: carpool-mailer-worker
     depends_on:
       redpanda:
         condition: service_healthy
-      mailpit:
-        condition: service_started
     environment:
-      KAFKA_BROKERS: ${KAFKA_BROKERS:-redpanda:9092}
-      MAILER_KAFKA_GROUP_ID: ${MAILER_KAFKA_GROUP_ID:-mailer-worker.docker}
-      SMTP_HOST: mailpit
-      SMTP_PORT: 1025
-      SMTP_SECURE: "false"
+      KAFKA_BROKERS: redpanda:9092
+      MAILER_KAFKA_GROUP_ID: ${MAILER_KAFKA_GROUP_ID:-mailer-worker.prod}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-true}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      MAILER_FROM: ${MAILER_FROM:-noreply@ridelink.app}
+      MAILER_LOGO_PATH: ${MAILER_LOGO_PATH:-/app/packages/mailer/public/logo.png}
+      MAILER_APP_NAME: ${MAILER_APP_NAME:-RideLink}
+      NODE_ENV: production
     command: ["pnpm", "--filter", "mailer-worker", "exec", "tsx", "src/worker.ts"]
     restart: unless-stopped
+    networks:
+      - carpool-net
 
 volumes:
   carpool_postgres_data:
+
+networks:
+  carpool-net:
+    driver: bridge

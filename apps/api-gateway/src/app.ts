@@ -23,6 +23,8 @@ export async function createApp(): Promise<express.Express> {
   app.use(requestIdMiddleware);
   app.use(loggingMiddleware);
   app.use(globalRateLimitMiddleware);
+  
+  app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
 
   app.use("/api/v1/auth", authRouter);
   app.use('/api/v1/vehicles', vehicleRouter);
