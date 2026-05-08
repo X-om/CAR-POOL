@@ -13,4 +13,7 @@ COPY packages ./packages
 # Install all workspace deps
 RUN pnpm -w install --frozen-lockfile
 
-ENV NODE_ENV=development
+# Build all packages (compiles TypeScript to dist/)
+RUN pnpm -w build
+
+ENV NODE_ENV=production
